@@ -1,0 +1,68 @@
+.info {
+  font-family: monospace, monospace;
+}
+
+.exp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 4px;
+  margin: 4px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 4px;
+  border-color: #bbb;
+  background-color: #fff;
+  font-family: monospace, monospace;
+}
+
+.pattern {
+  border-style: dashed;
+}
+
+.noOverflow {
+  display: flex;
+  align-items: center;
+}
+
+.newLine {
+  flex-basis: 100%;
+}
+
+.borderless {
+  border-width: 0px;
+  padding: 0px;
+  margin: 0px;
+  background-color: transparent;
+}
+
+.focused {
+  border-color: #000;
+  background-color: #eee;
+}
+
+.unary textarea {
+  border: none;
+  font-family: monospace, monospace;
+}
+
+.bold textarea {
+  font-weight: bold;
+}
+
+.actions {
+  padding: 4px;
+  margin: 4px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 4px;
+  border-color: #bbb;
+  background-color: #fff;
+  font-family: monospace, monospace;
+  font-size: small;
+}
+
+.actions button {
+  font-family: monospace, monospace;
+  font-size: inherit;
+}
