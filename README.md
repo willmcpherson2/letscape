@@ -1,4 +1,4 @@
-# [letscape.willmcpherson2.com](http://letscape.willmcpherson2.com)
+# [letscape](http://letscape.willmcpherson2.com)
 
 ## Install
 
