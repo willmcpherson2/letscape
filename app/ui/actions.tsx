@@ -161,7 +161,7 @@ export const makeActions = (
       type: "push",
       key: mods("p"),
       action: () => push(root),
-      actionable: true,
+      actionable: !inputting,
     },
     {
       type: "pull",
@@ -170,7 +170,7 @@ export const makeActions = (
         root,
         edit(currentTime(root), exp),
       ))),
-      actionable: true,
+      actionable: !inputting,
     },
     {
       type: "up",
