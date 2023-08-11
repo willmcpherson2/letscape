@@ -28,10 +28,10 @@ export type Props<E extends Exp> = {
 export default function Exp(props: Props<Exp>): ReactElement {
   return match(props.exp)
     .with({ type: "let" }, le => <Let {...props} exp={le} />)
-    .with({ type: "fun" }, fun => <Binary operator="→" props={{ ...props, exp: fun }} />)
+    .with({ type: "fun" }, fun => <Binary operator=":" props={{ ...props, exp: fun }} />)
     .with({ type: "match" }, ma => <Binary operator="|" props={{ ...props, exp: ma }} />)
-    .with({ type: "app" }, app => <Binary operator="" props={{ ...props, exp: app }} />)
-    .with({ type: "cons" }, cons => <Binary operator=":" props={{ ...props, exp: cons }} />)
+    .with({ type: "app" }, app => <Binary props={{ ...props, exp: app }} />)
+    .with({ type: "cons" }, cons => <Binary operator="," props={{ ...props, exp: cons }} />)
     .with({ type: "var" }, va => <Unary {...props} exp={va} />)
     .with({ type: "sym" }, sym => <Unary {...props} exp={sym} />)
     .with({ type: "null" }, nul => <Null {...props} exp={nul} />)
@@ -82,7 +82,6 @@ const Let = (props: Props<Let>): ReactElement => (
             pattern={props.pattern}
             borderless={false}
           />
-          in
         </div>
         <Exp
           {...props}
@@ -110,12 +109,12 @@ const Binary = <E extends Binary>({
   operator,
   props,
 }: {
-  operator: string;
+  operator?: string;
   props: Props<E>;
 }): ReactElement => (
   <div className={style(props)} onClick={handleClick(props)}>
     {hide(
-      operator === "" ? "…" : operator,
+      operator === undefined ? "…" : operator,
       props,
       <>
         <div className={styles.noOverflow}>
@@ -138,7 +137,7 @@ const Binary = <E extends Binary>({
               associates(props.exp) === "left"
             }
           />
-          {operator}
+          {operator === undefined ? "" : operator}
         </div>
         <Exp
           {...props}
