@@ -299,7 +299,7 @@ export const showVal = (exp: Val): string => match(exp)
     "(" + showVal(le.l) + " = " + showVal(le.m) + " " + showVal(le.r) + ")"
   )
   .with({ type: "fun" }, fun =>
-    "(" + showVal(fun.l) + ": " + showVal(fun.r) + ")"
+    "(" + showVal(fun.l) + " › " + showVal(fun.r) + ")"
   )
   .with({ type: "match" }, ma =>
     "(" + showVal(ma.l) + " | " + showVal(ma.r) + ")"
@@ -331,7 +331,7 @@ export const showStyle = (exp: Exp): string =>
       "(" + showStyle(le.l) + " = " + showStyle(le.m) + " " + showStyle(le.r) + ")"
     )
     .with({ type: "fun" }, fun =>
-      "(" + showStyle(fun.l) + ": " + showStyle(fun.r) + ")"
+      "(" + showStyle(fun.l) + " › " + showStyle(fun.r) + ")"
     )
     .with({ type: "match" }, ma =>
       "(" + showStyle(ma.l) + " | " + showStyle(ma.r) + ")"

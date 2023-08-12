@@ -28,7 +28,7 @@ export type Props<E extends Exp> = {
 export default function Exp(props: Props<Exp>): ReactElement {
   return match(props.exp)
     .with({ type: "let" }, le => <Let {...props} exp={le} />)
-    .with({ type: "fun" }, fun => <Binary operator=":" props={{ ...props, exp: fun }} />)
+    .with({ type: "fun" }, fun => <Binary operator="›" props={{ ...props, exp: fun }} />)
     .with({ type: "match" }, ma => <Binary operator="|" props={{ ...props, exp: ma }} />)
     .with({ type: "app" }, app => <Binary props={{ ...props, exp: app }} />)
     .with({ type: "cons" }, cons => <Binary operator="," props={{ ...props, exp: cons }} />)
