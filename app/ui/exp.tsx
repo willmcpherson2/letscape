@@ -16,7 +16,23 @@ import classNames from "classnames";
 import { pipe } from "fp-ts/function";
 import { map, reduce } from "fp-ts/Array";
 
-export type Props<E extends Exp> = {
+export default function Root(props: {
+  exp: Exp,
+  setExp: (exp: Exp) => void;
+}): ReactElement {
+  return (
+    <Exp
+      exp={props.exp}
+      root={props.exp}
+      update={props.setExp}
+      focus={props.setExp}
+      pattern={false}
+      borderless={false}
+    />
+  );
+}
+
+type Props<E extends Exp> = {
   exp: E;
   root: Exp;
   update: (exp: Exp) => void;
@@ -25,8 +41,8 @@ export type Props<E extends Exp> = {
   borderless: boolean;
 };
 
-export default function Exp(props: Props<Exp>): ReactElement {
-  return match(props.exp)
+const Exp = (props: Props<Exp>): ReactElement =>
+  match(props.exp)
     .with({ type: "let" }, le => <Let {...props} exp={le} />)
     .with({ type: "fun" }, fun => <Binary operator="›" props={{ ...props, exp: fun }} />)
     .with({ type: "match" }, ma => <Binary operator="|" props={{ ...props, exp: ma }} />)
@@ -36,7 +52,6 @@ export default function Exp(props: Props<Exp>): ReactElement {
     .with({ type: "sym" }, sym => <Unary {...props} exp={sym} />)
     .with({ type: "null" }, nul => <Null {...props} exp={nul} />)
     .exhaustive();
-}
 
 const Let = (props: Props<Let>): ReactElement => (
   <div className={style(props)} onClick={handleClick(props)}>
