@@ -8,6 +8,7 @@ import { log } from "core/utils";
 import { showHistory, showStyle } from "core/exp";
 import { Clipboard, showClipboard } from "./clipboard";
 import { none } from "fp-ts/Option";
+import styles from "./styles.module.css";
 
 export default function Editor(props: { exp: Exp }): ReactElement {
   const [exp, setExp] = useState<Exp>(props.exp);
@@ -33,16 +34,20 @@ export default function Editor(props: { exp: Exp }): ReactElement {
   }, [actions]);
 
   return (
-    <div>
-      <E
-        exp={exp}
-        root={exp}
-        update={setExp}
-        focus={setExp}
-        pattern={false}
-        borderless={false}
-      />
-      <Actions actions={actions} />
-    </div >
+    <div className={styles.editor}>
+      <div className={styles.editorExp}>
+        <E
+          exp={exp}
+          root={exp}
+          update={setExp}
+          focus={setExp}
+          pattern={false}
+          borderless={false}
+        />
+      </div>
+      <div className={styles.editorActions}>
+        <Actions actions={actions} />
+      </div>
+    </div>
   );
 }

@@ -1,3 +1,30 @@
+.editor {
+  display: flex;
+  height: 100vh;
+}
+
+@media screen and (min-aspect-ratio: 1/1) {
+  .editor {
+    flex-direction: row;
+  }
+}
+
+@media screen and (max-aspect-ratio: 1/1) {
+  .editor {
+    flex-direction: column;
+  }
+}
+
+.editorExp {
+  flex: 2;
+  overflow-y: scroll;
+}
+
+.editorActions {
+  flex: 1;
+  overflow-y: scroll;
+}
+
 .exp {
   display: flex;
   flex-wrap: wrap;
