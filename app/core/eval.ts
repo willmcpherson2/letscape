@@ -9,14 +9,16 @@ import {
   initMeta,
   Binary,
   isBinary,
-  reduceExp
+  reduceExp,
+  Val,
+  getVal
 } from "./exp";
 import { identity, pipe } from "fp-ts/function";
 import { match, P } from "ts-pattern";
 import { lookup } from "fp-ts/Record";
 import { getOrElse } from "fp-ts/Option";
 
-export type Binds = Record<string, Exp>;
+export type Binds = Record<string, Val>;
 
 export const evaluate = (binds: Binds, exp: Exp): Exp =>
   isData(exp) ? exp : evaluate(binds, step(binds, exp));
@@ -192,13 +194,15 @@ const stepApp = (binds: Binds) => (app: App): Exp =>
     }));
 
 const bind = (k: string, exp: Exp, binds: Binds): Binds =>
-  ({ ...binds, [k]: exp });
+  ({ ...binds, [k]: getVal(exp) });
 
-const resolve = (binds: Binds) => (va: Var): Exp =>
-  pipe(
+const resolve = (binds: Binds) => (va: Var): Exp => ({
+  ...pipe(
     lookup(va.s)(binds),
-    getOrElse(() => <Exp>({ type: "null", ...getMeta(va) })),
-  );
+    getOrElse(() => <Val>({ type: "null" })),
+  ),
+  ...getMeta(va),
+});
 
 const mentions = (exp: Exp, s: string): boolean =>
   pipe(
