@@ -69,7 +69,5 @@
 
 body {
   background-color: var(--base);
-  height: 100%;
   margin: 0;
-  padding: 0;
 }

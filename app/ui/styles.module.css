@@ -1,6 +1,23 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+}
+
+.headerText {
+  margin: 0;
+}
+
 .editor {
   display: flex;
-  height: 100vh;
+  overflow-y: scroll;
 }
 
 @media screen and (min-aspect-ratio: 1/1) {
