@@ -6,6 +6,7 @@
 
 .header {
   display: flex;
+  flex: initial;
   align-items: center;
   gap: 10px;
   padding: 10px;
@@ -23,6 +24,7 @@
 
 .editor {
   display: flex;
+  flex: auto;
   overflow-y: scroll;
 }
 
