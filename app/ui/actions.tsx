@@ -38,8 +38,8 @@ export type Action = {
   | "right"
   | "hide"
   | "newLine"
-  | "step"
   | "evaluate"
+  | "step"
   | "copy"
   | "paste"
   | "let"
@@ -88,8 +88,8 @@ export default function Actions(props: { actions: Actions }): ReactElement {
                 .with("undo", () => "Undo")
                 .with("hide", () => "Hide")
                 .with("newLine", () => "New line")
-                .with("step", () => "Evaluate step")
                 .with("evaluate", () => "Evaluate")
+                .with("step", () => "Step")
                 .with("copy", () => "Copy")
                 .with("paste", () => "Paste")
                 .with("let", () => "Let")
@@ -256,20 +256,20 @@ export const makeActions = (
       actionable: !inputting && anyFocused,
     },
     {
-      type: "step",
-      key: mods("e"),
-      action: () => setExp(pipe(
-        root,
-        edit(currentTime(root), step({}, root)),
-      )),
-      actionable: !inputting && !isData(root),
-    },
-    {
       type: "evaluate",
       key: mods("E", "shift"),
       action: () => setExp(pipe(
         root,
         edit(currentTime(root), evaluate({}, root)),
+      )),
+      actionable: !inputting && !isData(root),
+    },
+    {
+      type: "step",
+      key: mods("e"),
+      action: () => setExp(pipe(
+        root,
+        edit(currentTime(root), step({}, root)),
       )),
       actionable: !inputting && !isData(root),
     },
