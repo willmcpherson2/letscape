@@ -97,17 +97,6 @@
   font-weight: bold;
 }
 
-.actions {
-  padding: 4px;
-  margin: 4px;
-  border-style: solid;
-  border-width: 1px;
-  border-radius: 4px;
-  border-color: var(--overlay0);
-  background-color: var(--mantle);
-  font-size: small;
-}
-
 .actions button {
   font-size: inherit;
   background-color: var(--crust);
