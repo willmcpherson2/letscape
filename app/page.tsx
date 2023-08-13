@@ -20,8 +20,8 @@ const Header = (): ReactElement => (
     <Image
       src="/letscape.png"
       alt="letscape logo"
-      width="64"
-      height="64"
+      width="48"
+      height="48"
       quality={100}
     />
     <div className={styles.links}>
