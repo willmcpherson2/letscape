@@ -11,7 +11,13 @@
   padding: 10px;
 }
 
-.headerText {
+.links {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.heading {
   margin: 0;
 }
 

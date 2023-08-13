@@ -16,7 +16,7 @@ export default async function Page(): Promise<ReactElement> {
 }
 
 const Header = (): ReactElement => (
-  <a className={styles.header} href="/">
+  <div className={styles.header}>
     <Image
       src="/letscape.png"
       alt="letscape logo"
@@ -24,6 +24,13 @@ const Header = (): ReactElement => (
       height="64"
       quality={100}
     />
-    <h1 className={styles.headerText}>letscape</h1>
-  </a>
+    <div className={styles.links}>
+      <a href="/">
+        <h1 className={styles.heading}>letscape</h1>
+      </a>
+      <a href="https://github.com/willmcpherson2/letscape">
+        GitHub
+      </a>
+    </div>
+  </div>
 );
