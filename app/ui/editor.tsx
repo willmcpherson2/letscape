@@ -1,11 +1,10 @@
 "use client";
 
-import { Exp, showHistory, showStyle } from "core/exp";
+import { Exp } from "core/exp";
 import Root from "./exp";
 import { ReactElement, useEffect, useState } from "react";
 import Actions, { makeActions, runActions } from "./actions";
-import { log } from "core/utils";
-import { Clipboard, showClipboard } from "./clipboard";
+import { Clipboard } from "./clipboard";
 import { none } from "fp-ts/Option";
 import styles from "./styles.module.css";
 
@@ -18,13 +17,6 @@ export default function Editor(props: { exp: Exp }): ReactElement {
     clipboard,
     setClipboard,
   );
-
-  log("history:");
-  log(showHistory(exp));
-  log("style:");
-  log(showStyle(exp));
-  log("clipboard:");
-  log(showClipboard(clipboard));
 
   useEffect(() => {
     const handleKeyDown = runActions(actions);

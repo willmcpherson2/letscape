@@ -9,6 +9,8 @@ import {
   mapFocused,
   navigate,
   rightNavigable,
+  showHistory,
+  showStyle,
 } from "core/exp";
 import { ReactElement } from "react";
 import { match } from "ts-pattern";
@@ -16,10 +18,11 @@ import { keyInfo, KeyInfo, mods } from "./utils";
 import { exists, filter, head, isNonEmpty, map, size } from "fp-ts/Array";
 import { pipe } from "fp-ts/function";
 import { fold, isSome } from "fp-ts/Option";
-import { Clipboard, copy } from "ui/clipboard";
+import { Clipboard, copy, showClipboard } from "ui/clipboard";
 import { evaluate, isData, step } from "core/eval";
 import { edit, editFocused, hasRedo, hasUndo, currentTime, redo, undo } from "core/history";
 import { pull, push } from "./remote";
+import { log } from "core/utils";
 
 export type Action = {
   type:
@@ -46,7 +49,8 @@ export type Action = {
   | "cons"
   | "var"
   | "sym"
-  | "null";
+  | "null"
+  | "debug";
   key: KeyInfo;
   action: () => void;
   actionable: boolean;
@@ -96,6 +100,7 @@ export default function Actions(props: { actions: Actions }): ReactElement {
                 .with("var", () => "Variable")
                 .with("sym", () => "Symbol")
                 .with("null", () => "Null")
+                .with("debug", () => "Debug")
                 .exhaustive()
               }
             />
@@ -410,6 +415,22 @@ export const makeActions = (
           focused: true,
         }),
       )),
+      actionable: !inputting && anyFocused,
+    },
+    {
+      type: "debug",
+      key: mods("d"),
+      action: () => pipe(
+        focused,
+        map(exp => {
+          log("history:");
+          log(showHistory(exp));
+          log("style:");
+          log(showStyle(exp));
+          log("clipboard:");
+          log(showClipboard(clipboard));
+        })
+      ),
       actionable: !inputting && anyFocused,
     },
   ];
