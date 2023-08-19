@@ -20,8 +20,14 @@ import { getOrElse } from "fp-ts/Option";
 
 export type Binds = Record<string, Val>;
 
-export const evaluate = (binds: Binds, exp: Exp): Exp =>
-  isData(exp) ? exp : evaluate(binds, step(binds, exp));
+export const evaluate = (binds: Binds, exp: Exp): Exp => {
+  // We need to use mutation to avoid recursion limits.
+  let e = exp;
+  while (!isData(e)) {
+    e = step(binds, e);
+  }
+  return e;
+}
 
 export const step = (binds: Binds, exp: Exp): Exp =>
   match(exp)
