@@ -10,6 +10,7 @@ import {
   focus,
   focused,
   unsetMeta,
+  setMeta,
 } from "core/exp";
 import { edit, currentTime } from "core/history";
 import styles from "./styles.module.css";
@@ -66,10 +67,11 @@ const Let = (props: Props<Let>): ReactElement => (
           <Exp
             {...props}
             exp={props.exp.l}
-            update={l => props.update(pipe(
+            update={l => pipe(
               props.exp,
               update({ ...props.exp, l }),
-            ))}
+              props.update,
+            )}
             focus={l => pipe(
               props.exp,
               pipe(
@@ -93,10 +95,11 @@ const Let = (props: Props<Let>): ReactElement => (
           <Exp
             {...props}
             exp={props.exp.m}
-            update={m => props.update(pipe(
+            update={m => pipe(
               props.exp,
               update({ ...props.exp, m }),
-            ))}
+              props.update,
+            )}
             focus={m => pipe(
               props.exp,
               pipe(
@@ -118,10 +121,11 @@ const Let = (props: Props<Let>): ReactElement => (
         <Exp
           {...props}
           exp={props.exp.r}
-          update={r => props.update(pipe(
+          update={r => pipe(
             props.exp,
             update({ ...props.exp, r }),
-          ))}
+            props.update,
+          )}
           focus={r => pipe(
             props.exp,
             pipe(
@@ -160,10 +164,11 @@ const Binary = <E extends Binary>({
           <Exp
             {...props}
             exp={props.exp.l}
-            update={l => props.update(pipe(
+            update={l => pipe(
               props.exp,
               update({ ...props.exp, l }),
-            ))}
+              props.update,
+            )}
             focus={l => pipe(
               props.exp,
               pipe(
@@ -188,10 +193,11 @@ const Binary = <E extends Binary>({
         <Exp
           {...props}
           exp={props.exp.r}
-          update={r => props.update(pipe(
+          update={r => pipe(
             props.exp,
             update({ ...props.exp, r }),
-          ))}
+            props.update,
+          )}
           focus={r => pipe(
             props.exp,
             pipe(
@@ -234,11 +240,13 @@ const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
         <textarea
           ref={inputRef}
           onClick={e => e.stopPropagation()}
-          onFocus={() => props.focus(pipe(
+          onFocus={() => pipe(
             props.exp,
             mapUnfocus,
-            exp => ({ ...exp, inputting: true, focused: true }),
-          ))}
+            setMeta("inputting", true),
+            setMeta("focused", true),
+            props.focus,
+          )}
           onBlur={() => pipe(
             props.exp,
             pipe(props.exp, unsetMeta("inputting"), update),
