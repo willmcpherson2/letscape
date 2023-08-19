@@ -8,12 +8,12 @@ import {
   getStyle,
   mapFocused,
   getVal,
-  initHistory,
+  unsetMeta,
 } from "./exp";
 import * as R from "fp-ts/Record";
 import { map, reduce } from "fp-ts/Array"
 import * as S from "fp-ts/string";
-import { pipe } from "fp-ts/function";
+import { flow, pipe } from "fp-ts/function";
 import { Option, fold, getOrElse, none, some } from "fp-ts/Option";
 
 const keys = (changes: Changes): Time[] =>
@@ -48,7 +48,7 @@ export const currentTime = (exp: Exp): Time =>
 const maxRedoTime = (exp: Exp): Time => pipe(
   exp,
   reduceExp(0, (time, exp) => pipe(
-    exp.redos,
+    exp.redos ?? {},
     keys,
     reduce(time, Math.max),
   ))
@@ -57,7 +57,7 @@ const maxRedoTime = (exp: Exp): Time => pipe(
 const minRedoTime = (exp: Exp): Time => pipe(
   exp,
   reduceExp(Infinity, (time, exp) => pipe(
-    exp.redos,
+    exp.redos ?? {},
     keys,
     reduce(time, Math.min),
   ))
@@ -66,7 +66,7 @@ const minRedoTime = (exp: Exp): Time => pipe(
 const maxUndoTime = (exp: Exp): Time => pipe(
   exp,
   reduceExp(0, (time, exp) => pipe(
-    exp.undos,
+    exp.undos ?? {},
     keys,
     reduce(time, Math.max),
   ))
@@ -93,18 +93,15 @@ const firstTime = (current: Time, changes: Changes): Time =>
 export const wipeHistory = (exp: Exp): Exp =>
   pipe(
     exp,
-    mapExp(exp => ({
-      ...exp,
-      ...initHistory,
-    })),
+    mapExp(flow(unsetMeta("undos"), unsetMeta("redos"))),
   );
 
 const addChangeExp = (current: Time, change: Exp) => (exp: Exp): Exp => ({
   ...wipeHistory(change),
   undos: addChange(
-    firstTime(current, exp.redos),
+    firstTime(current, exp.redos ?? {}),
     getVal(exp),
-    changesUnion(exp.undos, shiftChangesForward(current, exp.redos)),
+    changesUnion(exp.undos ?? {}, shiftChangesForward(current, exp.redos ?? {})),
   ),
   redos: {},
 });
@@ -128,13 +125,13 @@ export const undo = (exp: Exp): Exp => {
   return pipe(
     exp,
     mapExp(exp => pipe(
-      exp.undos,
+      exp.undos ?? {},
       pop(time),
       fold(
         () => exp,
         ([val, undos]) => ({
           ...val,
-          redos: addChange(time, exp, exp.redos),
+          redos: addChange(time, exp, exp.redos ?? {}),
           undos,
           ...getStyle(exp),
         }),
@@ -148,14 +145,14 @@ export const redo = (exp: Exp): Exp => {
   return pipe(
     exp,
     mapExp(exp => pipe(
-      exp.redos,
+      exp.redos ?? {},
       pop(time),
       fold(
         () => exp,
         ([val, redos]) => ({
           ...val,
           redos,
-          undos: addChange(time, exp, exp.undos),
+          undos: addChange(time, exp, exp.undos ?? {}),
           ...getStyle(exp),
         }),
       )
@@ -166,11 +163,11 @@ export const redo = (exp: Exp): Exp => {
 export const hasUndo = (exp: Exp): boolean =>
   pipe(
     exp,
-    reduceExp(false, (yes, exp) => yes || !isEmpty(exp.undos)),
+    reduceExp(false, (yes, exp) => yes || !isEmpty(exp.undos ?? {})),
   );
 
 export const hasRedo = (exp: Exp): boolean =>
   pipe(
     exp,
-    reduceExp(false, (yes, exp) => yes || !isEmpty(exp.redos)),
+    reduceExp(false, (yes, exp) => yes || !isEmpty(exp.redos ?? {})),
   );

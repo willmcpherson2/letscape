@@ -19,8 +19,8 @@ export type Val =
 export type Meta = History & Style;
 
 export type History = {
-  redos: Changes;
-  undos: Changes;
+  redos?: Changes;
+  undos?: Changes;
 };
 
 export type Changes = Record<Time, Val>;
@@ -28,10 +28,10 @@ export type Changes = Record<Time, Val>;
 export type Time = number;
 
 export type Style = {
-  focused: boolean;
-  inputting: boolean;
-  hidden: boolean;
-  newLine: boolean;
+  focused?: true;
+  inputting?: true;
+  hidden?: true;
+  newLine?: true;
 };
 
 export type Binary = Exclude<Extract<Exp, { l: Exp; r: Exp }>, { m: Exp }>;
@@ -80,22 +80,22 @@ export const getStyle = (exp: Exp): Style => ({
   newLine: exp.newLine,
 });
 
-export const initHistory: History = {
-  undos: {},
-  redos: {},
+export const setMeta = (k: keyof Meta, x: boolean) => (exp: Exp): Exp =>
+  x ? { ...exp, [k]: true } : unsetMeta(k)(exp);
+
+export const unsetMeta = (k: keyof Meta) => (exp: Exp): Exp => {
+  const { [k]: _, ...e } = exp;
+  return e;
 };
 
-export const initStyle: Style = {
-  focused: false,
-  inputting: false,
-  hidden: false,
-  newLine: false,
-};
+export const inMeta = (k: keyof Meta) => (exp: Exp): boolean =>
+  exp[k] !== undefined;
 
-export const initMeta: Meta = {
-  ...initHistory,
-  ...initStyle,
-};
+export const focus = (x: boolean) => (exp: Exp): Exp =>
+  setMeta("focused", x)(exp);
+
+export const focused = (exp: Exp): boolean =>
+  inMeta("focused")(exp);
 
 export const isBinary = (exp: Val): exp is Binary =>
   "l" in exp && "r" in exp && !("m" in exp);
@@ -147,46 +147,50 @@ export const navigate = (exp: Exp, direction: Direction): Exp =>
   match(direction)
     .with("up", () => pipe(
       match(exp)
-        .with({ type: "let" }, le => ({
-          ...le,
-          focused: le.l.focused || le.m.focused || le.r.focused,
-        }))
-        .with({ l: P._ }, exp => ({
-          ...exp,
-          focused: exp.l.focused || exp.r.focused,
-        }))
+        .with({ type: "let" }, le => pipe(
+          exp,
+          focus(focused(le.l) || focused(le.m) || focused(le.r)),
+        ))
+        .with({ l: P._ }, exp => pipe(
+          exp,
+          focus(focused(exp.l) || focused(exp.r)),
+        ))
         .otherwise(identity),
-      onSubExps(exp => ({ ...exp, focused: false })),
+      onSubExps(focus(false)),
       onSubExps(exp => navigate(exp, "up")),
     ))
     .with("down", () => pipe(
       exp,
       onSubExps(exp => navigate(exp, "down")),
       exp => match(exp)
-        .with({ type: "let" }, le => ({
-          ...le,
-          l: { ...le.l, focused: le.l.focused || le.focused },
-          focused: false,
-        }))
-        .with({ l: P._ }, exp => ({
-          ...exp,
-          l: { ...exp.l, focused: exp.l.focused || exp.focused },
-          focused: false,
-        }))
+        .with({ type: "let" }, le => pipe(
+          {
+            ...le,
+            l: pipe(le.l, focus(focused(le.l) || focused(le))),
+          },
+          focus(false),
+        ))
+        .with({ l: P._ }, exp => pipe(
+          {
+            ...exp,
+            l: pipe(exp.l, focus(focused(exp.l) || focused(exp))),
+          },
+          focus(false),
+        ))
         .otherwise(identity),
     ))
     .with("left", () => pipe(
       match(exp)
         .with({ type: "let" }, le => ({
           ...le,
-          l: { ...le.l, focused: le.l.focused || le.m.focused },
-          m: { ...le.m, focused: le.r.focused },
-          r: { ...le.r, focused: false },
+          l: pipe(le.l, focus(focused(le.l) || focused(le.m))),
+          m: pipe(le.m, focus(focused(le.r))),
+          r: pipe(le.r, focus(false)),
         }))
         .with({ l: P._ }, exp => ({
           ...exp,
-          l: { ...exp.l, focused: exp.l.focused || exp.r.focused },
-          r: { ...exp.r, focused: false },
+          l: pipe(exp.l, focus(focused(exp.l) || focused(exp.r))),
+          r: pipe(exp.r, focus(false)),
         }))
         .otherwise(identity),
       onSubExps(exp => navigate(exp, "left")),
@@ -195,14 +199,14 @@ export const navigate = (exp: Exp, direction: Direction): Exp =>
       match(exp)
         .with({ type: "let" }, le => ({
           ...le,
-          l: { ...le.l, focused: false },
-          m: { ...le.m, focused: le.l.focused },
-          r: { ...le.r, focused: le.r.focused || le.m.focused },
+          l: pipe(le.l, focus(false)),
+          m: pipe(le.m, focus(focused(le.l))),
+          r: pipe(le.r, focus(focused(le.r) || focused(le.m))),
         }))
         .with({ l: P._ }, exp => ({
           ...exp,
-          l: { ...exp.l, focused: false },
-          r: { ...exp.r, focused: exp.l.focused || exp.r.focused },
+          l: pipe(exp.l, focus(false)),
+          r: pipe(exp.r, focus(focused(exp.l) || focused(exp.r))),
         }))
         .otherwise(identity),
       onSubExps(exp => navigate(exp, "right")),
@@ -215,8 +219,8 @@ export const leftNavigable = (exp: Exp): boolean =>
     reduceExp(false, (yes, exp) =>
       yes ||
       match(exp)
-        .with({ type: "let" }, le => !le.l.focused && le.m.focused || !le.m.focused && le.r.focused)
-        .with({ l: P._ }, exp => !exp.l.focused && exp.r.focused)
+        .with({ type: "let" }, le => !focused(le.l) && focused(le.m) || !focused(le.m) && focused(le.r))
+        .with({ l: P._ }, exp => !focused(exp.l) && focused(exp.r))
         .otherwise(() => false)
     ),
   );
@@ -227,8 +231,8 @@ export const rightNavigable = (exp: Exp): boolean =>
     reduceExp(false, (yes, exp) =>
       yes ||
       match(exp)
-        .with({ type: "let" }, le => le.l.focused && !le.m.focused || le.m.focused && !le.r.focused)
-        .with({ l: P._ }, exp => exp.l.focused && !exp.r.focused)
+        .with({ type: "let" }, le => focused(le.l) && !focused(le.m) || focused(le.m) && !focused(le.r))
+        .with({ l: P._ }, exp => focused(exp.l) && !focused(exp.r))
         .otherwise(() => false)
     ),
   );
@@ -259,9 +263,9 @@ const addNewlines = (lines: string[]): string =>
   pipe(lines, intercalate(S.Monoid)("\n"));
 
 export const showHistory = (exp: Exp, indent: string = ""): string => addNewlines([
-  ...showChanges(exp.redos, indent),
+  ...showChanges(exp.redos ?? {}, indent),
   indent + "now: " + showVal(exp),
-  ...showChanges(exp.undos, indent),
+  ...showChanges(exp.undos ?? {}, indent),
   ...showSubHistories(exp, indent),
 ]);
 

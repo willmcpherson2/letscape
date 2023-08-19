@@ -8,11 +8,6 @@ import { readFile, writeFile } from "node:fs/promises";
 const init: Exp = {
   type: "null",
   focused: true,
-  inputting: false,
-  hidden: false,
-  newLine: false,
-  redos: {},
-  undos: {},
 };
 
 const dbFilename = (): string => process.env.LETSCAPE_DB ?? "/tmp/db.json";

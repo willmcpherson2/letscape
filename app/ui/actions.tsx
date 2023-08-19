@@ -2,15 +2,17 @@ import styles from "./styles.module.css";
 import {
   Exp,
   getFocused,
-  initMeta,
+  inMeta,
   isLeaf,
   isUnary,
   leftNavigable,
   mapFocused,
   navigate,
   rightNavigable,
+  setMeta,
   showHistory,
   showStyle,
+  unsetMeta,
 } from "core/exp";
 import { ReactElement } from "react";
 import { match } from "ts-pattern";
@@ -154,7 +156,7 @@ export const makeActions = (
 ): Actions => {
   const focused = getFocused(root);
   const anyFocused = isNonEmpty(focused);
-  const inputting = pipe(focused, exists(exp => exp.inputting));
+  const inputting = pipe(focused, exists(exp => exp.inputting !== undefined));
   const unaryFocused = pipe(focused, exists(isUnary));
   const leafFocused = pipe(focused, exists(isLeaf));
   const onlyRootFocused = root.focused && size(focused) === 1;
@@ -188,7 +190,7 @@ export const makeActions = (
       key: mods("ArrowUp"),
       action: () => setExp(pipe(
         root,
-        mapFocused(exp => ({ ...exp, inputting: false })),
+        mapFocused(unsetMeta("inputting")),
       )),
       actionable: inputting,
     },
@@ -234,25 +236,27 @@ export const makeActions = (
     {
       type: "hide",
       key: mods("Tab"),
-      action: () => setExp(pipe(
+      action: () => pipe(
         root,
-        mapFocused(exp => ({
-          ...exp,
-          hidden: !exp.hidden,
-        }))
-      )),
+        mapFocused(exp => pipe(
+          exp,
+          setMeta("hidden", !pipe(exp, inMeta("hidden"))),
+        )),
+        setExp,
+      ),
       actionable: !inputting && anyFocused,
     },
     {
       type: "newLine",
       key: mods("Enter"),
-      action: () => setExp(pipe(
+      action: () => pipe(
         root,
-        mapFocused(exp => ({
-          ...exp,
-          newLine: !exp.newLine,
-        })),
-      )),
+        mapFocused(exp => pipe(
+          exp,
+          setMeta("newLine", !pipe(exp, inMeta("newLine"))),
+        )),
+        setExp,
+      ),
       actionable: !inputting && anyFocused,
     },
     {
@@ -305,10 +309,9 @@ export const makeActions = (
         root,
         editFocused({
           type: "let",
-          l: { type: "null", ...initMeta },
-          m: { type: "null", ...initMeta },
-          r: { type: "null", ...initMeta },
-          ...initMeta,
+          l: { type: "null" },
+          m: { type: "null" },
+          r: { type: "null" },
           focused: true,
         }),
       )),
@@ -321,9 +324,8 @@ export const makeActions = (
         root,
         editFocused({
           type: "fun",
-          l: { type: "null", ...initMeta },
-          r: { type: "null", ...initMeta },
-          ...initMeta,
+          l: { type: "null" },
+          r: { type: "null" },
           focused: true,
         }),
       )),
@@ -336,9 +338,8 @@ export const makeActions = (
         root,
         editFocused({
           type: "match",
-          l: { type: "null", ...initMeta },
-          r: { type: "null", ...initMeta },
-          ...initMeta,
+          l: { type: "null" },
+          r: { type: "null" },
           focused: true,
         }),
       )),
@@ -351,9 +352,8 @@ export const makeActions = (
         root,
         editFocused({
           type: "app",
-          l: { type: "null", ...initMeta },
-          r: { type: "null", ...initMeta },
-          ...initMeta,
+          l: { type: "null" },
+          r: { type: "null" },
           focused: true,
         }),
       )),
@@ -366,9 +366,8 @@ export const makeActions = (
         root,
         editFocused({
           type: "cons",
-          l: { type: "null", ...initMeta },
-          r: { type: "null", ...initMeta },
-          ...initMeta,
+          l: { type: "null" },
+          r: { type: "null" },
           focused: true,
         }),
       )),
@@ -382,7 +381,6 @@ export const makeActions = (
         editFocused({
           type: "var",
           s: "",
-          ...initMeta,
           focused: true,
           inputting: true,
         }),
@@ -397,7 +395,6 @@ export const makeActions = (
         editFocused({
           type: "sym",
           s: "",
-          ...initMeta,
           focused: true,
           inputting: true,
         }),
@@ -411,7 +408,6 @@ export const makeActions = (
         root,
         editFocused({
           type: "null",
-          ...initMeta,
           focused: true,
         }),
       )),

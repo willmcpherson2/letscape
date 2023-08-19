@@ -7,6 +7,9 @@ import {
   update,
   mapExp,
   isUnary,
+  focus,
+  focused,
+  unsetMeta,
 } from "core/exp";
 import { edit, currentTime } from "core/history";
 import styles from "./styles.module.css";
@@ -67,13 +70,20 @@ const Let = (props: Props<Let>): ReactElement => (
               props.exp,
               update({ ...props.exp, l }),
             ))}
-            focus={l => props.focus(pipe(props.exp, update({
-              ...props.exp,
-              l,
-              m: mapUnfocus(props.exp.m),
-              r: mapUnfocus(props.exp.r),
-              focused: false
-            })))}
+            focus={l => pipe(
+              props.exp,
+              pipe(
+                {
+                  ...props.exp,
+                  l,
+                  m: mapUnfocus(props.exp.m),
+                  r: mapUnfocus(props.exp.r),
+                },
+                focus(false),
+                update,
+              ),
+              props.focus,
+            )}
             pattern={true}
             borderless={false}
           />
@@ -87,13 +97,20 @@ const Let = (props: Props<Let>): ReactElement => (
               props.exp,
               update({ ...props.exp, m }),
             ))}
-            focus={m => props.focus(pipe(props.exp, update({
-              ...props.exp,
-              l: mapUnfocus(props.exp.l),
-              m,
-              r: mapUnfocus(props.exp.r),
-              focused: false
-            })))}
+            focus={m => pipe(
+              props.exp,
+              pipe(
+                {
+                  ...props.exp,
+                  l: mapUnfocus(props.exp.l),
+                  m,
+                  r: mapUnfocus(props.exp.r),
+                },
+                focus(false),
+                update,
+              ),
+              props.focus,
+            )}
             pattern={props.pattern}
             borderless={false}
           />
@@ -105,13 +122,20 @@ const Let = (props: Props<Let>): ReactElement => (
             props.exp,
             update({ ...props.exp, r }),
           ))}
-          focus={r => props.focus(pipe(props.exp, update({
-            ...props.exp,
-            l: mapUnfocus(props.exp.l),
-            m: mapUnfocus(props.exp.m),
-            r,
-            focused: false
-          })))}
+          focus={r => pipe(
+            props.exp,
+            pipe(
+              {
+                ...props.exp,
+                l: mapUnfocus(props.exp.l),
+                m: mapUnfocus(props.exp.m),
+                r,
+              },
+              focus(false),
+              update,
+            ),
+            props.focus,
+          )}
           pattern={props.pattern}
           borderless={props.exp.r.type === "let"}
         />
@@ -140,12 +164,19 @@ const Binary = <E extends Binary>({
               props.exp,
               update({ ...props.exp, l }),
             ))}
-            focus={l => props.focus(pipe(props.exp, update({
-              ...props.exp,
-              l,
-              r: mapUnfocus(props.exp.r),
-              focused: false
-            })))}
+            focus={l => pipe(
+              props.exp,
+              pipe(
+                {
+                  ...props.exp,
+                  l,
+                  r: mapUnfocus(props.exp.r),
+                },
+                focus(false),
+                update,
+              ),
+              props.focus,
+            )}
             pattern={props.exp.type === "fun" || props.pattern}
             borderless={
               props.exp.l.type === props.exp.type &&
@@ -161,12 +192,19 @@ const Binary = <E extends Binary>({
             props.exp,
             update({ ...props.exp, r }),
           ))}
-          focus={r => props.focus(pipe(props.exp, update({
-            ...props.exp,
-            l: mapUnfocus(props.exp.l),
-            r,
-            focused: false
-          })))}
+          focus={r => pipe(
+            props.exp,
+            pipe(
+              {
+                ...props.exp,
+                l: mapUnfocus(props.exp.l),
+                r,
+              },
+              focus(false),
+              update,
+            ),
+            props.focus,
+          )}
           pattern={props.pattern}
           borderless={
             props.exp.r.type === props.exp.type &&
@@ -201,17 +239,19 @@ const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
             mapUnfocus,
             exp => ({ ...exp, inputting: true, focused: true }),
           ))}
-          onBlur={() => props.update(pipe(
+          onBlur={() => pipe(
             props.exp,
-            update({ ...props.exp, inputting: false }),
-          ))}
+            pipe(props.exp, unsetMeta("inputting"), update),
+            props.update,
+          )}
           value={props.exp.s}
           onChange={e => {
             const s = e.target.value;
-            props.update(pipe(
+            pipe(
               props.exp,
               edit(currentTime(props.root), { ...props.exp, s }),
-            ));
+              props.update,
+            );
           }}
           rows={props.exp.s.split("\n").length}
           cols={pipe(
@@ -248,18 +288,16 @@ const style = (props: Props<Exp>): string =>
 
 const handleClick = (props: Props<Exp>) => (e: MouseEvent<HTMLDivElement>) => {
   e.stopPropagation();
-  props.focus(pipe(
+  pipe(
     props.exp,
     mapUnfocus,
-    exp => ({ ...exp, focused: !props.exp.focused }),
-  ));
+    focus(!focused(props.exp)),
+    props.focus,
+  );
 }
 
 const mapUnfocus = (exp: Exp): Exp =>
-  pipe(
-    exp,
-    mapExp(e => ({ ...e, focused: false })),
-  );
+  pipe(exp, mapExp(focus(false)));
 
 const associates = (exp: Exp): "left" | "right" =>
   exp.type === "app" ? "left" : "right";
