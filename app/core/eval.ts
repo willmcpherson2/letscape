@@ -4,54 +4,42 @@ import {
   Match,
   App,
   Sym,
-  Var,
   getMeta,
   Binary,
   isBinary,
   reduceExp,
-  Val,
-  getVal
+  Null,
 } from "./exp";
 import { identity, pipe } from "fp-ts/function";
-import { match, P } from "ts-pattern";
-import { lookup } from "fp-ts/Record";
-import { getOrElse } from "fp-ts/Option";
+import { P, match } from "ts-pattern";
 
-export type Binds = Record<string, Val>;
-
-export const evaluate = (binds: Binds, exp: Exp): Exp => {
-  // We need to use mutation to avoid recursion limits.
-  let e = exp;
-  while (!isData(e)) {
-    e = step(binds, e);
-  }
-  return e;
-}
-
-export const step = (binds: Binds, exp: Exp): Exp =>
+export const evaluate = (exp: Exp): Exp =>
   match(exp)
-    .with({ type: "let" }, stepLet(binds))
-    .with({ type: "match" }, stepMatch(binds))
-    .with({ type: "app" }, stepApp(binds))
-    .with({ type: "cons" }, cons => ({
-      ...cons,
-      l: step(binds, cons.l),
-      r: step(binds, cons.r),
+    .with({ type: "let" }, evalLet)
+    .with({ type: "match" }, evalMatch)
+    .with({ type: "app" }, evalApp)
+    .with({ type: "var" }, va => <Null>({
+      type: "null",
+      ...getMeta(va),
     }))
-    .with({ type: "var" }, resolve(binds))
     .otherwise(identity);
 
-const stepLet = (binds: Binds) => (le: Let): Exp =>
+const evalLet = (le: Let): Exp =>
   match(le.l)
-    .with({ type: "let" }, stepLetLet(le))
-    .with({ type: "match" }, { type: "app" }, stepLetBinary(le))
-    .with({ type: "cons" }, { type: "fun" }, stepLetBinaryData(binds, le))
-    .with({ type: "null" }, () => stepLetNull(binds, le))
-    .with({ type: "sym" }, stepLetSym(binds, le))
-    .with({ type: "var" }, stepLetVar(binds, le))
+    .with({ type: "let" }, evalLetLet(le))
+    .with({ type: "match" }, { type: "app" }, evalLetBinary(le))
+    .with({ type: "cons" }, { type: "fun" }, evalLetBinaryData(le))
+    .with({ type: "null" }, () => evalLetNull(le))
+    .with({ type: "sym" }, evalLetSym(le))
+    .with({ type: "var" }, va =>
+      evaluate({
+        ...substitute(va.s, le.m, le.r),
+        ...getMeta(le),
+      })
+    )
     .exhaustive();
 
-const stepLetLet = (le: Let) => (l: Let): Exp =>
+const evalLetLet = (le: Let) => (l: Let): Exp =>
   match(le.m)
     .with({ type: "let" }, unfoldLetLet(le, l))
     .otherwise(() => ({
@@ -59,15 +47,17 @@ const stepLetLet = (le: Let) => (l: Let): Exp =>
       ...getMeta(le),
     }));
 
-const stepLetBinaryData = (binds: Binds, le: Let) => (l: Binary): Exp =>
+const evalLetBinaryData = (le: Let) => (l: Binary): Exp =>
   match(le.m)
-    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, m => ({
-      ...le,
-      m: step(binds, m),
-    }))
-    .otherwise(() => stepLetBinary(le)(l));
+    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, m =>
+      evaluate({
+        ...le,
+        m: evaluate(m),
+      })
+    )
+    .otherwise(() => evalLetBinary(le)(l));
 
-const stepLetBinary = (le: Let) => (l: Binary): Exp =>
+const evalLetBinary = (le: Let) => (l: Binary): Exp =>
   l.type === le.m.type && isBinary(le.m)
     ? unfoldBinaryLet(le, l)(le.m)
     : {
@@ -75,138 +65,165 @@ const stepLetBinary = (le: Let) => (l: Binary): Exp =>
       ...getMeta(le),
     };
 
-const unfoldLetLet = (le: Let, l: Let) => (m: Let): Let => ({
-  ...le,
-  l: { ...l.l, ...getMeta(le.l) },
-  m: { ...m.l, ...getMeta(le.m) },
-  r: <Let>{
-    type: "let",
-    l: l.m,
-    m: m.m,
-    r: <Let>{
+const unfoldLetLet = (le: Let, l: Let) => (m: Let): Exp =>
+  evaluate({
+    ...le,
+    l: { ...l.l, ...getMeta(le.l) },
+    m: { ...m.l, ...getMeta(le.m) },
+    r: {
+      type: "let",
+      l: l.m,
+      m: m.m,
+      r: {
+        type: "let",
+        l: l.r,
+        m: m.r,
+        r: le.r,
+      },
+      ...getMeta(le.r),
+    },
+  });
+
+const unfoldBinaryLet = (le: Let, l: Binary) => (m: Binary): Exp =>
+  evaluate({
+    ...le,
+    l: { ...l.l, ...getMeta(le.l) },
+    m: { ...m.l, ...getMeta(le.m) },
+    r: {
       type: "let",
       l: l.r,
       m: m.r,
       r: le.r,
-    },
-    ...getMeta(le.r),
-  },
-});
+      ...getMeta(le.r),
+    }
+  });
 
-const unfoldBinaryLet = (le: Let, l: Binary) => (m: Binary): Let => ({
-  ...le,
-  l: { ...l.l, ...getMeta(le.l) },
-  m: { ...m.l, ...getMeta(le.m) },
-  r: <Let>{
-    type: "let",
-    l: l.r,
-    m: m.r,
-    r: le.r,
-    ...getMeta(le.r),
-  }
-});
-
-const stepLetNull = (binds: Binds, le: Let): Exp =>
+const evalLetNull = (le: Let): Exp =>
   match(le.m)
-    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, m => ({
-      ...le,
-      m: step(binds, m),
-    }))
-    .with({ type: "null" }, () => ({
-      ...le.r,
-      ...getMeta(le),
-    }))
+    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, m =>
+      evaluate({
+        ...le,
+        m: evaluate(m),
+      })
+    )
+    .with({ type: "null" }, () =>
+      evaluate({
+        ...le.r,
+        ...getMeta(le),
+      })
+    )
     .otherwise(() => ({
       type: "null",
       ...getMeta(le),
     }));
 
-const stepLetSym = (binds: Binds, le: Let) => (sym: Sym): Exp =>
+const evalLetSym = (le: Let) => (sym: Sym): Exp =>
   match(le.m)
-    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, m => ({
-      ...le,
-      m: step(binds, m),
-    }))
-    .with({ type: "sym", s: sym.s }, () => ({
-      ...le.r,
-      ...getMeta(le),
-    }))
+    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, m =>
+      evaluate({
+        ...le,
+        m: evaluate(m),
+      })
+    )
+    .with({ type: "sym", s: sym.s }, () =>
+      evaluate({
+        ...le.r,
+        ...getMeta(le),
+      })
+    )
     .otherwise(() => ({
       type: "null",
       ...getMeta(le),
     }));
 
-const stepLetVar = (binds: Binds, le: Let) => (va: Var): Exp =>
-  match(le.r)
-    .with({ type: "let" }, { type: "var" }, r => ({
-      ...le,
-      r: step(bind(va.s, le.m, binds), r),
-    }))
-    .with({ type: "match" }, { type: "app" }, { type: "cons" }, r => ({
-      ...r,
-      l: { ...le, r: r.l, ...getMeta(r.l) },
-      r: { ...le, r: r.r, ...getMeta(r.r) },
-      ...getMeta(le),
-    }))
-    .with({ type: "fun", l: P.when(l => !mentions(l, va.s)) }, fun => ({
-      ...fun,
-      r: { ...le, r: fun.r, ...getMeta(fun) },
-      ...getMeta(le),
-    }))
-    .otherwise(r => ({
-      ...r,
-      ...getMeta(le),
-    }));
-
-const stepMatch = (binds: Binds) => (ma: Match): Exp =>
+const evalMatch = (ma: Match): Exp =>
   match(ma.l)
-    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, l => ({
-      ...ma,
-      l: step(binds, l),
-    }))
-    .with({ type: "null" }, () => ({
-      ...ma.r,
-      ...getMeta(ma),
-    }))
-    .otherwise(l => ({
-      ...l,
-      ...getMeta(ma),
-    }));
+    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, l =>
+      evaluate({
+        ...ma,
+        l: evaluate(l),
+      })
+    )
+    .with({ type: "fun" }, () => ma)
+    .with({ type: "null" }, () =>
+      evaluate({
+        ...ma.r,
+        ...getMeta(ma),
+      })
+    )
+    .otherwise(l =>
+      evaluate({
+        ...l,
+        ...getMeta(ma),
+      })
+    );
 
-const stepApp = (binds: Binds) => (app: App): Exp =>
+const evalApp = (app: App): Exp =>
   match(app.l)
-    .with({ type: "let" }, { type: "app" }, { type: "var" }, l => ({
-      ...app,
-      l: step(binds, l),
-    }))
-    .with({ type: "fun" }, fun => <Let>({
-      type: "let",
-      l: fun.l,
-      m: app.r,
-      r: fun.r,
-      ...getMeta(app),
-    }))
-    .with({ type: "match" }, m => ({
-      ...m,
-      l: { ...app, l: m.l, ...getMeta(m.l) },
-      r: { ...app, l: m.r, ...getMeta(m.r) },
-      ...getMeta(app),
-    }))
+    .with({ type: "let" }, { type: "app" }, { type: "var" }, l =>
+      evaluate({
+        ...app,
+        l: evaluate(l),
+      })
+    )
+    .with({ type: "fun" }, fun =>
+      evaluate({
+        type: "let",
+        l: fun.l,
+        m: app.r,
+        r: fun.r,
+        ...getMeta(app),
+      })
+    )
+    .with({ type: "match" }, m =>
+      evaluate({
+        ...m,
+        l: { ...app, l: m.l, ...getMeta(m.l) },
+        r: { ...app, l: m.r, ...getMeta(m.r) },
+        ...getMeta(app),
+      })
+    )
     .otherwise(() => ({
       type: "null",
       ...getMeta(app),
     }));
 
-const bind = (k: string, exp: Exp, binds: Binds): Binds =>
-  ({ ...binds, [k]: getVal(exp) });
-
-const resolve = (binds: Binds) => (va: Var): Exp => ({
-  ...pipe(
-    lookup(va.s)(binds),
-    getOrElse(() => <Val>({ type: "null" })),
-  ),
-  ...getMeta(va),
-});
+const substitute = (s: string, m: Exp, r: Exp): Exp =>
+  match(r)
+    .with({ type: "let" }, le =>
+      mentions(le.l, s)
+        ? le
+        : {
+          ...le,
+          m: substitute(s, m, le.m),
+          r: substitute(s, m, le.r),
+        }
+    )
+    .with({ type: "fun" }, fun =>
+      mentions(fun.l, s)
+        ? fun
+        : {
+          ...fun,
+          r: substitute(s, m, fun.r),
+        }
+    )
+    .with({ l: P._ }, exp => ({
+      ...exp,
+      l: substitute(s, m, exp.l),
+      r: substitute(s, m, exp.r),
+    }))
+    .with({ type: "var" }, va =>
+      mentions(va, s)
+        ? <Let>{
+          type: "let",
+          l: { type: "var", s },
+          m,
+          r: m,
+          ...getMeta(va),
+        }
+        : va
+    )
+    .otherwise(identity);
 
 const mentions = (exp: Exp, s: string): boolean =>
   pipe(
@@ -218,9 +235,3 @@ const mentions = (exp: Exp, s: string): boolean =>
         .otherwise(() => false)
     ),
   );
-
-export const isData = (exp: Exp): boolean =>
-  match(exp)
-    .with({ type: "fun" }, { type: "sym" }, { type: "null" }, () => true)
-    .with({ type: "cons" }, cons => isData(cons.l) && isData(cons.r))
-    .otherwise(() => false);

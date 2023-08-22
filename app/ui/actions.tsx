@@ -21,7 +21,7 @@ import { exists, filter, head, isNonEmpty, map, size } from "fp-ts/Array";
 import { pipe } from "fp-ts/function";
 import { fold, isSome } from "fp-ts/Option";
 import { Clipboard, copy, showClipboard } from "ui/clipboard";
-import { evaluate, isData, step } from "core/eval";
+import { evaluate } from "core/eval";
 import { edit, editFocused, hasRedo, hasUndo, currentTime, redo, undo } from "core/history";
 import { pull, push } from "./remote";
 import { log } from "core/utils";
@@ -41,7 +41,6 @@ export type Action = {
   | "hide"
   | "newLine"
   | "evaluate"
-  | "step"
   | "copy"
   | "paste"
   | "let"
@@ -91,7 +90,6 @@ export default function Actions(props: { actions: Actions }): ReactElement {
                 .with("hide", () => "Hide")
                 .with("newLine", () => "New line")
                 .with("evaluate", () => "Evaluate")
-                .with("step", () => "Step")
                 .with("copy", () => "Copy")
                 .with("paste", () => "Paste")
                 .with("let", () => "Let")
@@ -261,21 +259,14 @@ export const makeActions = (
     },
     {
       type: "evaluate",
-      key: mods("E", "shift"),
-      action: () => setExp(pipe(
-        root,
-        edit(currentTime(root), evaluate({}, root)),
-      )),
-      actionable: !inputting && !isData(root),
-    },
-    {
-      type: "step",
       key: mods("e"),
-      action: () => setExp(pipe(
+      action: () => pipe(
         root,
-        edit(currentTime(root), step({}, root)),
-      )),
-      actionable: !inputting && !isData(root),
+        mapFocused(evaluate),
+        exp => edit(currentTime(root), exp)(root),
+        setExp,
+      ),
+      actionable: !inputting,
     },
     {
       type: "copy",
