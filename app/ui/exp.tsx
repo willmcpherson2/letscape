@@ -14,7 +14,13 @@ import {
 } from "core/exp";
 import { edit, currentTime } from "core/history";
 import styles from "./styles.module.css";
-import { ReactElement, MouseEvent, useRef, useEffect } from "react";
+import {
+  ReactElement,
+  MouseEvent,
+  useRef,
+  useEffect,
+  MutableRefObject,
+} from "react";
 import { match } from "ts-pattern";
 import classNames from "classnames";
 import { pipe } from "fp-ts/function";
@@ -57,57 +63,91 @@ const Exp = (props: Props<Exp>): ReactElement =>
     .with({ type: "null" }, nul => <Null {...props} exp={nul} />)
     .exhaustive();
 
-const Let = (props: Props<Let>): ReactElement => (
-  <div className={style(props)} onClick={handleClick(props)}>
-    {hide(
-      "=",
-      props,
-      <>
-        <div className={styles.noOverflow}>
+const Let = (props: Props<Let>): ReactElement => {
+  const ref = useRef<HTMLDivElement | null>(null);
+  onFocus(props, ref);
+
+  return (
+    <div
+      className={style(props)}
+      onClick={handleClick(props)}
+      ref={ref}
+    >
+      {hide(
+        "=",
+        props,
+        <>
+          <div className={styles.noOverflow}>
+            <Exp
+              {...props}
+              exp={props.exp.l}
+              update={l => pipe(
+                props.exp,
+                update({ ...props.exp, l }),
+                props.update,
+              )}
+              focus={l => pipe(
+                props.exp,
+                pipe(
+                  {
+                    ...props.exp,
+                    l,
+                    m: mapUnfocus(props.exp.m),
+                    r: mapUnfocus(props.exp.r),
+                  },
+                  focus(false),
+                  update,
+                ),
+                props.focus,
+              )}
+              pattern={true}
+              borderless={false}
+            />
+            =
+          </div>
+          <div className={styles.noOverflow}>
+            <Exp
+              {...props}
+              exp={props.exp.m}
+              update={m => pipe(
+                props.exp,
+                update({ ...props.exp, m }),
+                props.update,
+              )}
+              focus={m => pipe(
+                props.exp,
+                pipe(
+                  {
+                    ...props.exp,
+                    l: mapUnfocus(props.exp.l),
+                    m,
+                    r: mapUnfocus(props.exp.r),
+                  },
+                  focus(false),
+                  update,
+                ),
+                props.focus,
+              )}
+              pattern={props.pattern}
+              borderless={false}
+            />
+          </div>
           <Exp
             {...props}
-            exp={props.exp.l}
-            update={l => pipe(
+            exp={props.exp.r}
+            update={r => pipe(
               props.exp,
-              update({ ...props.exp, l }),
+              update({ ...props.exp, r }),
               props.update,
             )}
-            focus={l => pipe(
-              props.exp,
-              pipe(
-                {
-                  ...props.exp,
-                  l,
-                  m: mapUnfocus(props.exp.m),
-                  r: mapUnfocus(props.exp.r),
-                },
-                focus(false),
-                update,
-              ),
-              props.focus,
-            )}
-            pattern={true}
-            borderless={false}
-          />
-          =
-        </div>
-        <div className={styles.noOverflow}>
-          <Exp
-            {...props}
-            exp={props.exp.m}
-            update={m => pipe(
-              props.exp,
-              update({ ...props.exp, m }),
-              props.update,
-            )}
-            focus={m => pipe(
+            focus={r => pipe(
               props.exp,
               pipe(
                 {
                   ...props.exp,
                   l: mapUnfocus(props.exp.l),
-                  m,
-                  r: mapUnfocus(props.exp.r),
+                  m: mapUnfocus(props.exp.m),
+                  r,
                 },
                 focus(false),
                 update,
@@ -115,38 +155,13 @@ const Let = (props: Props<Let>): ReactElement => (
               props.focus,
             )}
             pattern={props.pattern}
-            borderless={false}
+            borderless={props.exp.r.type === "let"}
           />
-        </div>
-        <Exp
-          {...props}
-          exp={props.exp.r}
-          update={r => pipe(
-            props.exp,
-            update({ ...props.exp, r }),
-            props.update,
-          )}
-          focus={r => pipe(
-            props.exp,
-            pipe(
-              {
-                ...props.exp,
-                l: mapUnfocus(props.exp.l),
-                m: mapUnfocus(props.exp.m),
-                r,
-              },
-              focus(false),
-              update,
-            ),
-            props.focus,
-          )}
-          pattern={props.pattern}
-          borderless={props.exp.r.type === "let"}
-        />
-      </>
-    )}
-  </div>
-);
+        </>
+      )}
+    </div>
+  );
+}
 
 const Binary = <E extends Binary>({
   operator,
@@ -154,83 +169,88 @@ const Binary = <E extends Binary>({
 }: {
   operator?: string;
   props: Props<E>;
-}): ReactElement => (
-  <div className={style(props)} onClick={handleClick(props)}>
-    {hide(
-      operator === undefined ? "…" : operator,
-      props,
-      <>
-        <div className={styles.noOverflow}>
+}): ReactElement => {
+  const ref = useRef<HTMLDivElement | null>(null);
+  onFocus(props, ref);
+
+  return (
+    <div
+      className={style(props)}
+      onClick={handleClick(props)}
+      ref={ref}
+    >
+      {hide(
+        operator === undefined ? "…" : operator,
+        props,
+        <>
+          <div className={styles.noOverflow}>
+            <Exp
+              {...props}
+              exp={props.exp.l}
+              update={l => pipe(
+                props.exp,
+                update({ ...props.exp, l }),
+                props.update,
+              )}
+              focus={l => pipe(
+                props.exp,
+                pipe(
+                  {
+                    ...props.exp,
+                    l,
+                    r: mapUnfocus(props.exp.r),
+                  },
+                  focus(false),
+                  update,
+                ),
+                props.focus,
+              )}
+              pattern={props.exp.type === "fun" || props.pattern}
+              borderless={
+                props.exp.l.type === props.exp.type &&
+                associates(props.exp) === "left"
+              }
+            />
+            {operator === undefined ? "" : operator}
+          </div>
           <Exp
             {...props}
-            exp={props.exp.l}
-            update={l => pipe(
+            exp={props.exp.r}
+            update={r => pipe(
               props.exp,
-              update({ ...props.exp, l }),
+              update({ ...props.exp, r }),
               props.update,
             )}
-            focus={l => pipe(
+            focus={r => pipe(
               props.exp,
               pipe(
                 {
                   ...props.exp,
-                  l,
-                  r: mapUnfocus(props.exp.r),
+                  l: mapUnfocus(props.exp.l),
+                  r,
                 },
                 focus(false),
                 update,
               ),
               props.focus,
             )}
-            pattern={props.exp.type === "fun" || props.pattern}
+            pattern={props.pattern}
             borderless={
-              props.exp.l.type === props.exp.type &&
-              associates(props.exp) === "left"
+              props.exp.r.type === props.exp.type &&
+              associates(props.exp) === "right"
             }
           />
-          {operator === undefined ? "" : operator}
-        </div>
-        <Exp
-          {...props}
-          exp={props.exp.r}
-          update={r => pipe(
-            props.exp,
-            update({ ...props.exp, r }),
-            props.update,
-          )}
-          focus={r => pipe(
-            props.exp,
-            pipe(
-              {
-                ...props.exp,
-                l: mapUnfocus(props.exp.l),
-                r,
-              },
-              focus(false),
-              update,
-            ),
-            props.focus,
-          )}
-          pattern={props.pattern}
-          borderless={
-            props.exp.r.type === props.exp.type &&
-            associates(props.exp) === "right"
-          }
-        />
-      </>
-    )}
-  </div>
-);
+        </>
+      )}
+    </div>
+  );
+}
 
 const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
+  const ref = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(
-    () => props.exp.inputting
-      ? inputRef.current?.focus()
-      : inputRef.current?.blur(),
-    [props.exp.inputting],
-  );
+  onFocus(props, ref);
+  onInput(props, inputRef);
 
   return (
     <div className={style(props)} onClick={handleClick(props)}>
@@ -274,11 +294,38 @@ const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
   );
 }
 
-const Null = (props: Props<Null>): ReactElement => (
-  <div className={style(props)} onClick={handleClick(props)}>
-    {hide("…", props, <>&nbsp;</>)}
-  </div>
-);
+const Null = (props: Props<Null>): ReactElement => {
+  const ref = useRef<HTMLDivElement | null>(null);
+  onFocus(props, ref);
+
+  return (
+    <div
+      className={style(props)}
+      onClick={handleClick(props)}
+      ref={ref}
+    >
+      {hide("…", props, <>&nbsp;</>)}
+    </div>
+  );
+}
+
+const onFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLDivElement | null>) =>
+  useEffect(
+    () => {
+      if (props.exp.focused) {
+        ref.current?.scrollIntoView();
+      }
+    },
+    [props.exp.focused],
+  );
+
+const onInput = (props: Props<Exp>, ref: MutableRefObject<HTMLTextAreaElement | null>) =>
+  useEffect(
+    () => props.exp.inputting
+      ? ref.current?.focus()
+      : ref.current?.blur(),
+    [props.exp.inputting],
+  );
 
 const hide = (operator: string, props: Props<Exp>, el: ReactElement): ReactElement =>
   props.exp.hidden ? <>{operator}</> : el;
