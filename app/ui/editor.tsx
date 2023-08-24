@@ -2,7 +2,7 @@
 
 import { Exp } from "core/exp";
 import Root from "./exp";
-import { ReactElement, useEffect, useState } from "react";
+import { ReactElement, useEffect, useRef, useState } from "react";
 import Actions, { makeActions, runActions } from "./actions";
 import { Clipboard } from "./clipboard";
 import { none } from "fp-ts/Option";
@@ -24,10 +24,12 @@ export default function Editor(props: { exp: Exp }): ReactElement {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [actions]);
 
+  const ref = useRef<HTMLDivElement | null>(null);
+
   return (
     <div className={styles.editor}>
-      <div className={styles.editorExp}>
-        <Root exp={exp} setExp={setExp} />
+      <div className={styles.editorExp} ref={ref}>
+        <Root exp={exp} setExp={setExp} container={ref} />
       </div>
       <div className={styles.editorActions}>
         <Actions actions={actions} />

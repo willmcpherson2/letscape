@@ -28,12 +28,14 @@ import { map, reduce } from "fp-ts/Array";
 
 export default function Root(props: {
   exp: Exp,
-  setExp: (exp: Exp) => void;
+  setExp: (exp: Exp) => void,
+  container: MutableRefObject<HTMLDivElement | null>,
 }): ReactElement {
   return (
     <Exp
       exp={props.exp}
       root={props.exp}
+      container={props.container}
       update={props.setExp}
       focus={props.setExp}
       pattern={false}
@@ -45,6 +47,7 @@ export default function Root(props: {
 type Props<E extends Exp> = {
   exp: E;
   root: Exp;
+  container: MutableRefObject<HTMLDivElement | null>;
   update: (exp: Exp) => void;
   focus: (exp: Exp) => void;
   pattern: boolean;
@@ -312,8 +315,13 @@ const Null = (props: Props<Null>): ReactElement => {
 const onFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLDivElement | null>) =>
   useEffect(
     () => {
-      if (props.exp.focused) {
-        ref.current?.scrollIntoView();
+      if (ref.current && props.container.current && props.exp.focused) {
+        ref.current.scrollIntoView({
+          block:
+            ref.current.clientHeight > props.container.current.clientHeight
+              ? "start"
+              : "center"
+        })
       }
     },
     [props.exp.focused],
