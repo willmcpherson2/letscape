@@ -65,7 +65,7 @@ const Exp = (props: Props<Exp>): ReactElement =>
 
 const Let = (props: Props<Let>): ReactElement => {
   const ref = useRef<HTMLDivElement | null>(null);
-  onFocus(props, ref);
+  useFocus(props, ref);
 
   return (
     <div
@@ -168,7 +168,7 @@ const Binary = <E extends Binary>({
   props: Props<E>;
 }): ReactElement => {
   const ref = useRef<HTMLDivElement | null>(null);
-  onFocus(props, ref);
+  useFocus(props, ref);
 
   return (
     <div
@@ -244,8 +244,8 @@ const Binary = <E extends Binary>({
 const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
   const ref = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  onFocus(props, ref);
-  onInput(props, inputRef);
+  useFocus(props, ref);
+  useInput(props, inputRef);
 
   return (
     <div className={style(props)} onClick={handleClick(props)}>
@@ -291,7 +291,7 @@ const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
 
 const Null = (props: Props<Null>): ReactElement => {
   const ref = useRef<HTMLDivElement | null>(null);
-  onFocus(props, ref);
+  useFocus(props, ref);
 
   return (
     <div
@@ -304,7 +304,7 @@ const Null = (props: Props<Null>): ReactElement => {
   );
 }
 
-const onFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLDivElement | null>) =>
+const useFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLDivElement | null>) =>
   useEffect(
     () => {
       if (ref.current && props.container.current && props.exp.focused) {
@@ -319,7 +319,7 @@ const onFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLDivElement | null>
     [props.exp.focused],
   );
 
-const onInput = (props: Props<Exp>, ref: MutableRefObject<HTMLTextAreaElement | null>) =>
+const useInput = (props: Props<Exp>, ref: MutableRefObject<HTMLTextAreaElement | null>) =>
   useEffect(
     () => props.exp.inputting
       ? ref.current?.focus()
