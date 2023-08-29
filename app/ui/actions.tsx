@@ -3,6 +3,7 @@ import {
   Exp,
   getFocused,
   inMeta,
+  isCode,
   isLeaf,
   isUnary,
   leftNavigable,
@@ -49,6 +50,7 @@ export type Action = {
   | "app"
   | "cons"
   | "var"
+  | "bind"
   | "sym"
   | "null"
   | "debug";
@@ -98,6 +100,7 @@ export default function Actions(props: { actions: Actions }): ReactElement {
                 .with("app", () => "Application")
                 .with("cons", () => "Cons")
                 .with("var", () => "Variable")
+                .with("bind", () => "Bind")
                 .with("sym", () => "Symbol")
                 .with("null", () => "Null")
                 .with("debug", () => "Debug")
@@ -160,6 +163,7 @@ export const makeActions = (
   const onlyRootFocused = root.focused && size(focused) === 1;
   const undoFocused = pipe(focused, exists(hasUndo));
   const redoFocused = pipe(focused, exists(hasRedo));
+  const anyCode = pipe(focused, exists(isCode));
 
   return [
     {
@@ -266,7 +270,7 @@ export const makeActions = (
         exp => edit(currentTime(root), exp)(root),
         setExp,
       ),
-      actionable: !inputting,
+      actionable: !inputting && anyCode,
     },
     {
       type: "copy",
@@ -371,6 +375,20 @@ export const makeActions = (
         root,
         editFocused({
           type: "var",
+          s: "",
+          focused: true,
+          inputting: true,
+        }),
+      )),
+      actionable: !inputting && anyFocused,
+    },
+    {
+      type: "bind",
+      key: mods("b"),
+      action: () => setExp(pipe(
+        root,
+        editFocused({
+          type: "bind",
           s: "",
           focused: true,
           inputting: true,

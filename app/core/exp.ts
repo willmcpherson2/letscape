@@ -13,6 +13,7 @@ export type Val =
   | { type: "app"; l: Exp; r: Exp }
   | { type: "cons"; l: Exp; r: Exp }
   | { type: "var"; s: string }
+  | { type: "bind"; s: string }
   | { type: "sym"; s: string }
   | { type: "null" };
 
@@ -52,9 +53,34 @@ export type Cons = Extract<Exp, { type: "cons" }>;
 
 export type Var = Extract<Exp, { type: "var" }>;
 
+export type Bind = Extract<Exp, { type: "bind" }>;
+
 export type Sym = Extract<Exp, { type: "sym" }>;
 
 export type Null = Extract<Exp, { type: "null" }>;
+
+export type Data =
+  | Fun
+  | Match & { l: Fun }
+  | Cons
+  | Bind
+  | Sym
+  | Null;
+
+export const isData = (exp: Exp): exp is Data =>
+  match(exp)
+    .with(
+      { type: "fun" },
+      { type: "match", l: { type: "fun" } },
+      { type: "cons" },
+      { type: "bind" },
+      { type: "sym" },
+      { type: "null" },
+      () => true
+    )
+    .otherwise(() => false);
+
+export const isCode = (exp: Exp): boolean => !isData(exp);
 
 export const getVal = (exp: Exp): Val => match(exp)
   .with({ type: "let" }, le => ({ type: le.type, l: le.l, m: le.m, r: le.r }))
@@ -315,6 +341,7 @@ export const showVal = (exp: Val): string => match(exp)
     "(" + showVal(cons.l) + ", " + showVal(cons.r) + ")"
   )
   .with({ type: "var" }, va => va.s)
+  .with({ type: "bind" }, bind => "*" + bind.s)
   .with({ type: "sym" }, sym => '"' + sym.s + '"')
   .with({ type: "null" }, () => "_")
   .exhaustive();
@@ -347,6 +374,7 @@ export const showStyle = (exp: Exp): string =>
       "(" + showStyle(cons.l) + ", " + showStyle(cons.r) + ")"
     )
     .with({ type: "var" }, va => va.s)
+    .with({ type: "bind" }, bind => "*" + bind.s)
     .with({ type: "sym" }, sym => '"' + sym.s + '"')
     .with({ type: "null" }, () => "_")
     .exhaustive();

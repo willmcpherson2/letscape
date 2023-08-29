@@ -3,17 +3,17 @@ import {
   Let,
   Match,
   App,
-  Sym,
   getMeta,
-  Binary,
-  isBinary,
   reduceExp,
   Null,
+  Data,
+  Binary,
+  onSubExps,
 } from "./exp";
 import { identity, pipe } from "fp-ts/function";
 import { P, match } from "ts-pattern";
 
-export const evaluate = (exp: Exp): Exp =>
+export const evaluate = (exp: Exp): Data =>
   match(exp)
     .with({ type: "let" }, evalLet)
     .with({ type: "match" }, evalMatch)
@@ -24,141 +24,94 @@ export const evaluate = (exp: Exp): Exp =>
     }))
     .otherwise(identity);
 
-const evalLet = (le: Let): Exp =>
-  match(le.l)
-    .with({ type: "let" }, evalLetLet(le))
-    .with({ type: "match" }, { type: "app" }, evalLetBinary(le))
-    .with({ type: "cons" }, { type: "fun" }, evalLetBinaryData(le))
-    .with({ type: "null" }, () => evalLetNull(le))
-    .with({ type: "sym" }, evalLetSym(le))
-    .with({ type: "var" }, va =>
-      evaluate({
-        ...substitute(va.s, le.m, le.r),
-        ...getMeta(le),
-      })
+const evalLet = (le: Let): Data =>
+  match(evaluate(le.l))
+    .with({ type: "match" }, ma =>
+      match(evaluate(le.m))
+        .with({ type: "match" }, m =>
+          evaluate(unfold(le, ma, m))
+        )
+        .otherwise(() => <Null>({
+          type: "null",
+          ...getMeta(le),
+        }))
+    )
+    .with({ type: "fun" }, fun =>
+      match(evaluate(le.m))
+        .with({ type: "fun" }, f =>
+          evaluate(unfold(le, fun, f))
+        )
+        .otherwise(() => <Null>({
+          type: "null",
+          ...getMeta(le),
+        }))
+    )
+    .with({ type: "cons" }, cons =>
+      match(evaluate(le.m))
+        .with({ type: "cons" }, c =>
+          evaluate(unfold(le, cons, c))
+        )
+        .otherwise(() => <Null>({
+          type: "null",
+          ...getMeta(le),
+        }))
+    )
+    .with({ type: "bind" }, bind => ({
+      ...pipe(le.r, substitute(bind.s, le.m), evaluate),
+      ...getMeta(le),
+    }))
+    .with({ type: "sym" }, sym =>
+      match(evaluate(le.m))
+        .with({ type: "sym", s: sym.s }, () => ({
+          ...evaluate(le.r),
+          ...getMeta(le),
+        }))
+        .otherwise(() => <Null>({
+          type: "null",
+          ...getMeta(le),
+        }))
+    )
+    .with({ type: "null" }, () =>
+      match(evaluate(le.m))
+        .with({ type: "null" }, () => evaluate(le.r))
+        .otherwise(() => <Null>({
+          type: "null",
+          ...getMeta(le),
+        }))
     )
     .exhaustive();
 
-const evalLetLet = (le: Let) => (l: Let): Exp =>
-  match(le.m)
-    .with({ type: "let" }, unfoldLetLet(le, l))
-    .otherwise(() => ({
-      type: "null",
-      ...getMeta(le),
-    }));
+const unfold = (le: Let, l: Binary, m: Binary): Let => ({
+  type: "let",
+  l: l.l,
+  m: m.l,
+  r: {
+    type: "let",
+    l: l.r,
+    m: m.r,
+    r: le.r,
+  },
+  ...getMeta(le),
+});
 
-const evalLetBinaryData = (le: Let) => (l: Binary): Exp =>
-  match(le.m)
-    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, m =>
-      evaluate({
-        ...le,
-        m: evaluate(m),
-      })
-    )
-    .otherwise(() => evalLetBinary(le)(l));
-
-const evalLetBinary = (le: Let) => (l: Binary): Exp =>
-  l.type === le.m.type && isBinary(le.m)
-    ? unfoldBinaryLet(le, l)(le.m)
-    : {
-      type: "null",
-      ...getMeta(le),
-    };
-
-const unfoldLetLet = (le: Let, l: Let) => (m: Let): Exp =>
-  evaluate({
-    ...le,
-    l: { ...l.l, ...getMeta(le.l) },
-    m: { ...m.l, ...getMeta(le.m) },
-    r: {
-      type: "let",
-      l: l.m,
-      m: m.m,
-      r: {
-        type: "let",
-        l: l.r,
-        m: m.r,
-        r: le.r,
-      },
-      ...getMeta(le.r),
-    },
-  });
-
-const unfoldBinaryLet = (le: Let, l: Binary) => (m: Binary): Exp =>
-  evaluate({
-    ...le,
-    l: { ...l.l, ...getMeta(le.l) },
-    m: { ...m.l, ...getMeta(le.m) },
-    r: {
-      type: "let",
-      l: l.r,
-      m: m.r,
-      r: le.r,
-      ...getMeta(le.r),
-    }
-  });
-
-const evalLetNull = (le: Let): Exp =>
-  match(le.m)
-    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, m =>
-      evaluate({
-        ...le,
-        m: evaluate(m),
-      })
-    )
-    .with({ type: "null" }, () =>
-      evaluate({
-        ...le.r,
-        ...getMeta(le),
-      })
-    )
-    .otherwise(() => ({
-      type: "null",
-      ...getMeta(le),
-    }));
-
-const evalLetSym = (le: Let) => (sym: Sym): Exp =>
-  match(le.m)
-    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, m =>
-      evaluate({
-        ...le,
-        m: evaluate(m),
-      })
-    )
-    .with({ type: "sym", s: sym.s }, () =>
-      evaluate({
-        ...le.r,
-        ...getMeta(le),
-      })
-    )
-    .otherwise(() => ({
-      type: "null",
-      ...getMeta(le),
-    }));
-
-const evalMatch = (ma: Match): Exp =>
-  match(ma.l)
-    .with({ type: "let" }, { type: "match" }, { type: "app" }, { type: "var" }, l =>
-      evaluate({
-        ...ma,
-        l: evaluate(l),
-      })
-    )
-    .with({ type: "fun" }, () => ma)
+const evalMatch = (ma: Match): Data =>
+  match(evaluate(ma.l))
+    .with({ type: "fun" }, l => ({
+      ...ma,
+      l,
+    }))
     .with({ type: "null" }, () =>
       evaluate({
         ...ma.r,
         ...getMeta(ma),
       })
     )
-    .otherwise(l =>
-      evaluate({
-        ...l,
-        ...getMeta(ma),
-      })
-    );
+    .otherwise(l => ({
+      ...l,
+      ...getMeta(ma),
+    }));
 
-const evalApp = (app: App): Exp =>
+const evalApp = (app: App): Data =>
   match(app.l)
     .with({ type: "let" }, { type: "app" }, { type: "var" }, l =>
       evaluate({
@@ -188,35 +141,24 @@ const evalApp = (app: App): Exp =>
       ...getMeta(app),
     }));
 
-const substitute = (s: string, m: Exp, r: Exp): Exp =>
+const substitute = (s: string, m: Exp) => (r: Exp): Exp =>
   match(r)
     .with({ type: "let" }, le =>
-      mentions(le.l, s)
+      binds(le.l, s)
         ? le
-        : {
-          ...le,
-          m: substitute(s, m, le.m),
-          r: substitute(s, m, le.r),
-        }
+        : pipe(le, onSubExps(substitute(s, m)))
     )
     .with({ type: "fun" }, fun =>
-      mentions(fun.l, s)
+      binds(fun.l, s)
         ? fun
-        : {
-          ...fun,
-          r: substitute(s, m, fun.r),
-        }
+        : pipe(fun, onSubExps(substitute(s, m)))
     )
-    .with({ l: P._ }, exp => ({
-      ...exp,
-      l: substitute(s, m, exp.l),
-      r: substitute(s, m, exp.r),
-    }))
+    .with({ l: P._ }, onSubExps(substitute(s, m)))
     .with({ type: "var" }, va =>
-      mentions(va, s)
+      va.s === s
         ? <Let>{
           type: "let",
-          l: { type: "var", s },
+          l: { type: "bind", s },
           m,
           r: m,
           ...getMeta(va),
@@ -225,13 +167,13 @@ const substitute = (s: string, m: Exp, r: Exp): Exp =>
     )
     .otherwise(identity);
 
-const mentions = (exp: Exp, s: string): boolean =>
+const binds = (exp: Exp, s: string): boolean =>
   pipe(
     exp,
     reduceExp(false, (yes, exp) =>
       yes ||
       match(exp)
-        .with({ type: "var" }, va => va.s === s)
+        .with({ type: "bind" }, bind => bind.s === s)
         .otherwise(() => false)
     ),
   );

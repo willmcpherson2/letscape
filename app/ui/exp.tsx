@@ -38,7 +38,6 @@ export default function Root(props: {
       container={props.container}
       update={props.setExp}
       focus={props.setExp}
-      pattern={false}
       borderless={false}
     />
   );
@@ -50,7 +49,6 @@ type Props<E extends Exp> = {
   container: MutableRefObject<HTMLDivElement | null>;
   update: (exp: Exp) => void;
   focus: (exp: Exp) => void;
-  pattern: boolean;
   borderless: boolean;
 };
 
@@ -61,8 +59,7 @@ const Exp = (props: Props<Exp>): ReactElement =>
     .with({ type: "match" }, ma => <Binary operator="|" props={{ ...props, exp: ma }} />)
     .with({ type: "app" }, app => <Binary props={{ ...props, exp: app }} />)
     .with({ type: "cons" }, cons => <Binary operator="," props={{ ...props, exp: cons }} />)
-    .with({ type: "var" }, va => <Unary {...props} exp={va} />)
-    .with({ type: "sym" }, sym => <Unary {...props} exp={sym} />)
+    .with({ type: "var" }, { type: "bind" }, { type: "sym" }, exp => <Unary {...props} exp={exp} />)
     .with({ type: "null" }, nul => <Null {...props} exp={nul} />)
     .exhaustive();
 
@@ -103,7 +100,6 @@ const Let = (props: Props<Let>): ReactElement => {
                 ),
                 props.focus,
               )}
-              pattern={true}
               borderless={false}
             />
             =
@@ -131,7 +127,6 @@ const Let = (props: Props<Let>): ReactElement => {
                 ),
                 props.focus,
               )}
-              pattern={props.pattern}
               borderless={false}
             />
           </div>
@@ -157,7 +152,6 @@ const Let = (props: Props<Let>): ReactElement => {
               ),
               props.focus,
             )}
-            pattern={props.pattern}
             borderless={props.exp.r.type === "let"}
           />
         </>
@@ -208,7 +202,6 @@ const Binary = <E extends Binary>({
                 ),
                 props.focus,
               )}
-              pattern={props.exp.type === "fun" || props.pattern}
               borderless={
                 props.exp.l.type === props.exp.type &&
                 associates(props.exp) === "left"
@@ -237,7 +230,6 @@ const Binary = <E extends Binary>({
               ),
               props.focus,
             )}
-            pattern={props.pattern}
             borderless={
               props.exp.r.type === props.exp.type &&
               associates(props.exp) === "right"
@@ -341,10 +333,10 @@ const hide = (operator: string, props: Props<Exp>, el: ReactElement): ReactEleme
 const style = (props: Props<Exp>): string =>
   classNames(
     styles.exp,
-    props.pattern ? styles.pattern : "",
     props.exp.focused ? styles.focused : "",
     props.borderless && !props.exp.hidden ? styles.borderless : "",
     isUnary(props.exp) ? styles.unary : "",
+    props.exp.type === "bind" ? styles.bind : "",
     props.exp.type === "sym" ? styles.bold : "",
     props.exp.newLine ? styles.newLine : "",
   );
