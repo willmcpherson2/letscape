@@ -337,7 +337,7 @@ const style = (props: Props<Exp>): string =>
     props.borderless && !props.exp.hidden ? styles.borderless : "",
     isUnary(props.exp) ? styles.unary : "",
     props.exp.type === "bind" ? styles.bind : "",
-    props.exp.type === "sym" ? styles.bold : "",
+    props.exp.type === "sym" ? styles.sym : "",
     props.exp.newLine ? styles.newLine : "",
   );
 

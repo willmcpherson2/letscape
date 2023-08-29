@@ -88,11 +88,11 @@
   background-color: var(--mantle);
 }
 
-.bold {
+.sym {
   background-color: var(--crust);
 }
 
-.bold > textarea {
+.sym > textarea {
   font-weight: bold;
   background-color: var(--crust);
 }
