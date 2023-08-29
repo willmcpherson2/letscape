@@ -326,10 +326,10 @@ const showSubHistories = (exp: Val, indent: string = ""): string[] =>
 
 export const showVal = (exp: Val): string => match(exp)
   .with({ type: "let" }, le =>
-    "(" + showVal(le.l) + " = " + showVal(le.m) + " " + showVal(le.r) + ")"
+    "(" + showVal(le.l) + " = " + showVal(le.m) + " in " + showVal(le.r) + ")"
   )
   .with({ type: "fun" }, fun =>
-    "(" + showVal(fun.l) + " › " + showVal(fun.r) + ")"
+    "(" + showVal(fun.l) + " -> " + showVal(fun.r) + ")"
   )
   .with({ type: "match" }, ma =>
     "(" + showVal(ma.l) + " | " + showVal(ma.r) + ")"
@@ -342,7 +342,7 @@ export const showVal = (exp: Val): string => match(exp)
   )
   .with({ type: "var" }, va => va.s)
   .with({ type: "bind" }, bind => "*" + bind.s)
-  .with({ type: "sym" }, sym => '"' + sym.s + '"')
+  .with({ type: "sym" }, sym => ":" + sym.s)
   .with({ type: "null" }, () => "_")
   .exhaustive();
 
@@ -359,10 +359,10 @@ export const showStyle = (exp: Exp): string =>
   ) +
   match(exp)
     .with({ type: "let" }, le =>
-      "(" + showStyle(le.l) + " = " + showStyle(le.m) + " " + showStyle(le.r) + ")"
+      "(" + showStyle(le.l) + " = " + showStyle(le.m) + " in " + showStyle(le.r) + ")"
     )
     .with({ type: "fun" }, fun =>
-      "(" + showStyle(fun.l) + " › " + showStyle(fun.r) + ")"
+      "(" + showStyle(fun.l) + " -> " + showStyle(fun.r) + ")"
     )
     .with({ type: "match" }, ma =>
       "(" + showStyle(ma.l) + " | " + showStyle(ma.r) + ")"
@@ -375,6 +375,6 @@ export const showStyle = (exp: Exp): string =>
     )
     .with({ type: "var" }, va => va.s)
     .with({ type: "bind" }, bind => "*" + bind.s)
-    .with({ type: "sym" }, sym => '"' + sym.s + '"')
+    .with({ type: "sym" }, sym => ":" + sym.s)
     .with({ type: "null" }, () => "_")
     .exhaustive();
