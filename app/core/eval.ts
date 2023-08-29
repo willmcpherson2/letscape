@@ -73,7 +73,10 @@ const evalLet = (le: Let): Data =>
     )
     .with({ type: "null" }, () =>
       match(evaluate(le.m))
-        .with({ type: "null" }, () => evaluate(le.r))
+        .with({ type: "null" }, () => ({
+          ...evaluate(le.r),
+          ...getMeta(le),
+        }))
         .otherwise(() => <Null>({
           type: "null",
           ...getMeta(le),
