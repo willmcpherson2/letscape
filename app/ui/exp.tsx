@@ -104,6 +104,7 @@ const Let = (props: Props<Let>): ReactElement => {
             />
             =
           </div>
+          <NewLine newLine={props.exp.m.newLine} />
           <div className={styles.noOverflow}>
             <Exp
               {...props}
@@ -130,6 +131,7 @@ const Let = (props: Props<Let>): ReactElement => {
               borderless={false}
             />
           </div>
+          <NewLine newLine={props.exp.r.newLine} />
           <Exp
             {...props}
             exp={props.exp.r}
@@ -209,6 +211,7 @@ const Binary = <E extends Binary>({
             />
             {operator === undefined ? "" : operator}
           </div>
+          <NewLine newLine={props.exp.r.newLine} />
           <Exp
             {...props}
             exp={props.exp.r}
@@ -304,6 +307,9 @@ const Null = (props: Props<Null>): ReactElement => {
   );
 }
 
+const NewLine = (props: { newLine?: true }) =>
+  props.newLine ? <hr className={styles.newLine} /> : null;
+
 const useFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLDivElement | null>) =>
   useEffect(
     () => {
@@ -338,7 +344,7 @@ const style = (props: Props<Exp>): string =>
     isUnary(props.exp) ? styles.unary : "",
     props.exp.type === "bind" ? styles.bind : "",
     props.exp.type === "sym" ? styles.sym : "",
-    props.exp.newLine ? styles.newLine : "",
+    props.exp.newLine ? styles.dbg : "",
   );
 
 const handleClick = (props: Props<Exp>) => (e: MouseEvent<HTMLDivElement>) => {

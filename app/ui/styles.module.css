@@ -73,7 +73,11 @@
 }
 
 .newLine {
+  width: 100%;
   flex-basis: 100%;
+  height: 0;
+  margin: 0;
+  border: 0;
 }
 
 .borderless {
