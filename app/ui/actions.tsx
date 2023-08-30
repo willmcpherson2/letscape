@@ -40,7 +40,7 @@ export type Action = {
   | "left"
   | "right"
   | "hide"
-  | "newLine"
+  | "newline"
   | "evaluate"
   | "copy"
   | "paste"
@@ -90,7 +90,7 @@ export default function Actions(props: { actions: Actions }): ReactElement {
                 .with("redo", () => "Redo")
                 .with("undo", () => "Undo")
                 .with("hide", () => "Hide")
-                .with("newLine", () => "New line")
+                .with("newline", () => "New line")
                 .with("evaluate", () => "Evaluate")
                 .with("copy", () => "Copy")
                 .with("paste", () => "Paste")
@@ -249,13 +249,13 @@ export const makeActions = (
       actionable: !inputting && anyFocused,
     },
     {
-      type: "newLine",
+      type: "newline",
       key: mods("Enter"),
       action: () => pipe(
         root,
         mapFocused(exp => pipe(
           exp,
-          setMeta("newLine", !pipe(exp, inMeta("newLine"))),
+          setMeta("newline", !pipe(exp, inMeta("newline"))),
         )),
         setExp,
       ),

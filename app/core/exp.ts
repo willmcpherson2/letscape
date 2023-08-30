@@ -32,7 +32,7 @@ export type Style = {
   focused?: true;
   inputting?: true;
   hidden?: true;
-  newLine?: true;
+  newline?: true;
 };
 
 export type Binary = Exclude<Extract<Exp, { l: Exp; r: Exp }>, { m: Exp }>;
@@ -103,7 +103,7 @@ export const getStyle = (exp: Exp): Style => ({
   focused: exp.focused,
   inputting: exp.inputting,
   hidden: exp.hidden,
-  newLine: exp.newLine,
+  newline: exp.newline,
 });
 
 export const setMeta = (k: keyof Meta, x: boolean) => (exp: Exp): Exp =>
@@ -352,7 +352,7 @@ export const showStyle = (exp: Exp): string =>
       ...(exp.focused ? ["focused"] : []),
       ...(exp.inputting ? ["inputting"] : []),
       ...(exp.hidden ? ["hidden"] : []),
-      ...(exp.newLine ? ["newLine"] : []),
+      ...(exp.newline ? ["newline"] : []),
     ],
     intercalate(S.Monoid)(" "),
     s => s === "" ? s : "[" + s + "]",
