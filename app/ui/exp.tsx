@@ -105,32 +105,30 @@ const Let = (props: Props<Let>): ReactElement => {
             =
           </div>
           <Newline newline={props.exp.m.newline} />
-          <div className={styles.noOverflow}>
-            <Exp
-              {...props}
-              exp={props.exp.m}
-              update={m => pipe(
-                props.exp,
-                update({ ...props.exp, m }),
-                props.update,
-              )}
-              focus={m => pipe(
-                props.exp,
-                pipe(
-                  {
-                    ...props.exp,
-                    l: mapUnfocus(props.exp.l),
-                    m,
-                    r: mapUnfocus(props.exp.r),
-                  },
-                  focus(false),
-                  update,
-                ),
-                props.focus,
-              )}
-              borderless={false}
-            />
-          </div>
+          <Exp
+            {...props}
+            exp={props.exp.m}
+            update={m => pipe(
+              props.exp,
+              update({ ...props.exp, m }),
+              props.update,
+            )}
+            focus={m => pipe(
+              props.exp,
+              pipe(
+                {
+                  ...props.exp,
+                  l: mapUnfocus(props.exp.l),
+                  m,
+                  r: mapUnfocus(props.exp.r),
+                },
+                focus(false),
+                update,
+              ),
+              props.focus,
+            )}
+            borderless={false}
+          />
           <Newline newline={props.exp.r.newline} />
           <Exp
             {...props}
