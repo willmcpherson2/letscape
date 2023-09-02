@@ -80,15 +80,6 @@
   background-color: transparent;
 }
 
-.focused {
-  border-color: var(--overlay2);
-  background-color: var(--surface0);
-}
-
-.focused > textarea {
-  background-color: var(--surface0);
-}
-
 .unary > textarea {
   border: none;
   background-color: var(--mantle);
@@ -105,6 +96,15 @@
 
 .bind {
   border-style: dashed;
+}
+
+.focused {
+  border-color: var(--overlay2);
+  background-color: var(--surface0);
+}
+
+.focused > textarea {
+  background-color: var(--surface0);
 }
 
 .newline {
