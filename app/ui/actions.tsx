@@ -2,7 +2,9 @@ import styles from "./styles.module.css";
 import {
   Exp,
   getFocused,
+  getMeta,
   inMeta,
+  isBinary,
   isCode,
   isLeaf,
   isUnary,
@@ -300,126 +302,126 @@ export const makeActions = (
     {
       type: "let",
       key: mods("l"),
-      action: () => setExp(pipe(
+      action: () => newExp(
         root,
-        editFocused({
+        setExp,
+        {
           type: "let",
           l: { type: "null" },
           m: { type: "null" },
           r: { type: "null" },
-          focused: true,
-        }),
-      )),
+        },
+      ),
       actionable: !inputting && anyFocused,
     },
     {
       type: "fun",
       key: mods("f"),
-      action: () => setExp(pipe(
+      action: () => newExp(
         root,
-        editFocused({
+        setExp,
+        {
           type: "fun",
           l: { type: "null" },
           r: { type: "null" },
-          focused: true,
-        }),
-      )),
+        },
+      ),
       actionable: !inputting && anyFocused,
     },
     {
       type: "match",
       key: mods("m"),
-      action: () => setExp(pipe(
+      action: () => newExp(
         root,
-        editFocused({
+        setExp,
+        {
           type: "match",
           l: { type: "null" },
           r: { type: "null" },
-          focused: true,
-        }),
-      )),
+        },
+      ),
       actionable: !inputting && anyFocused,
     },
     {
       type: "app",
       key: mods("a"),
-      action: () => setExp(pipe(
+      action: () => newExp(
         root,
-        editFocused({
+        setExp,
+        {
           type: "app",
           l: { type: "null" },
           r: { type: "null" },
-          focused: true,
-        }),
-      )),
+        },
+      ),
       actionable: !inputting && anyFocused,
     },
     {
       type: "cons",
       key: mods("c"),
-      action: () => setExp(pipe(
+      action: () => newExp(
         root,
-        editFocused({
+        setExp,
+        {
           type: "cons",
           l: { type: "null" },
           r: { type: "null" },
-          focused: true,
-        }),
-      )),
+        },
+      ),
       actionable: !inputting && anyFocused,
     },
     {
       type: "var",
       key: mods("v"),
-      action: () => setExp(pipe(
+      action: () => newExp(
         root,
-        editFocused({
+        setExp,
+        {
           type: "var",
           s: "",
-          focused: true,
           inputting: true,
-        }),
-      )),
+        },
+      ),
       actionable: !inputting && anyFocused,
     },
     {
       type: "bind",
       key: mods("b"),
-      action: () => setExp(pipe(
+      action: () => newExp(
         root,
-        editFocused({
+        setExp,
+        {
           type: "bind",
           s: "",
-          focused: true,
           inputting: true,
-        }),
-      )),
+        },
+      ),
       actionable: !inputting && anyFocused,
     },
     {
       type: "sym",
       key: mods("s"),
-      action: () => setExp(pipe(
+      action: () => newExp(
         root,
-        editFocused({
+        setExp,
+        {
           type: "sym",
           s: "",
-          focused: true,
           inputting: true,
-        }),
-      )),
+        },
+      ),
       actionable: !inputting && anyFocused,
     },
     {
       type: "null",
       key: mods("n"),
-      action: () => setExp(pipe(
+      action: () => newExp(
         root,
-        editFocused({
+        setExp,
+        {
           type: "null",
-          focused: true,
-        }),
-      )),
+        },
+      ),
       actionable: !inputting && anyFocused,
     },
     {
@@ -440,3 +442,22 @@ export const makeActions = (
     },
   ];
 }
+
+const newExp = (root: Exp, setExp: (exp: Exp) => void, exp: Exp) =>
+  pipe(
+    root,
+    mapFocused(e => pipe(
+      e,
+      edit(
+        currentTime(root),
+        {
+          ...getMeta(e),
+          ...exp,
+          ...(exp.type === "let" && e.type === "let" ? { l: e.l, m: e.m, r: e.r } : {}),
+          ...(isBinary(exp) && isBinary(e) ? { l: e.l, r: e.r } : {}),
+          ...(isUnary(exp) && isUnary(e) ? { s: e.s } : {}),
+        },
+      ),
+    )),
+    setExp,
+  );
