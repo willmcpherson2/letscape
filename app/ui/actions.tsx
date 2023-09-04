@@ -267,8 +267,7 @@ export const makeActions = (
       key: mods("e"),
       action: () => pipe(
         root,
-        mapFocused(evalDeep),
-        exp => edit(currentTime(root), exp)(root),
+        mapFocused(exp => edit(currentTime(root), evalDeep(exp))(exp)),
         setExp,
       ),
       actionable: !inputting && anyNeedsEval,
