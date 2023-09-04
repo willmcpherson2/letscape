@@ -9,9 +9,24 @@ import {
   Data,
   Binary,
   onSubExps,
+  isCode,
 } from "./exp";
 import { identity, pipe } from "fp-ts/function";
 import { P, match } from "ts-pattern";
+
+export const evalDeep = (exp: Exp): Data =>
+  match(evaluate(exp))
+    .with({ type: "cons" }, cons => ({
+      ...cons,
+      l: evalDeep(cons.l),
+      r: evalDeep(cons.r),
+    }))
+    .otherwise(identity);
+
+export const needsEval = (exp: Exp): boolean =>
+  match(exp)
+    .with({ type: "cons" }, cons => isCode(cons.l) || isCode(cons.r))
+    .otherwise(isCode);
 
 export const evaluate = (exp: Exp): Data =>
   match(exp)

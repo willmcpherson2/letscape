@@ -5,7 +5,6 @@ import {
   getMeta,
   inMeta,
   isBinary,
-  isCode,
   isLeaf,
   isUnary,
   leftNavigable,
@@ -24,7 +23,7 @@ import { exists, filter, head, isNonEmpty, map, size } from "fp-ts/Array";
 import { pipe } from "fp-ts/function";
 import { fold, isSome } from "fp-ts/Option";
 import { Clipboard, copy, showClipboard } from "ui/clipboard";
-import { evaluate } from "core/eval";
+import { evalDeep, needsEval } from "core/eval";
 import { edit, editFocused, hasRedo, hasUndo, currentTime, redo, undo } from "core/history";
 import { pull, push } from "./remote";
 import { log } from "core/utils";
@@ -165,7 +164,7 @@ export const makeActions = (
   const onlyRootFocused = root.focused && size(focused) === 1;
   const undoFocused = pipe(focused, exists(hasUndo));
   const redoFocused = pipe(focused, exists(hasRedo));
-  const anyCode = pipe(focused, exists(isCode));
+  const anyNeedsEval = pipe(focused, exists(needsEval));
 
   return [
     {
@@ -268,11 +267,11 @@ export const makeActions = (
       key: mods("e"),
       action: () => pipe(
         root,
-        mapFocused(evaluate),
+        mapFocused(evalDeep),
         exp => edit(currentTime(root), exp)(root),
         setExp,
       ),
-      actionable: !inputting && anyCode,
+      actionable: !inputting && anyNeedsEval,
     },
     {
       type: "copy",
