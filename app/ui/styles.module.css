@@ -56,9 +56,8 @@
 }
 
 .exp {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  display: inline-block;
+  vertical-align: middle;
   padding: 4px;
   margin: 4px;
   border-style: solid;
@@ -68,7 +67,12 @@
   background-color: var(--mantle);
 }
 
-.noOverflow {
+.leftAndOperatorContainer {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.leftAndOperator {
   display: flex;
   align-items: center;
 }

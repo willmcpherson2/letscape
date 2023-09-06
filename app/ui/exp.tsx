@@ -77,32 +77,34 @@ const Let = (props: Props<Let>): ReactElement => {
         "=",
         props,
         <>
-          <div className={styles.noOverflow}>
-            <Exp
-              {...props}
-              exp={props.exp.l}
-              update={l => pipe(
-                props.exp,
-                update({ ...props.exp, l }),
-                props.update,
-              )}
-              focus={l => pipe(
-                props.exp,
-                pipe(
-                  {
-                    ...props.exp,
-                    l,
-                    m: mapUnfocus(props.exp.m),
-                    r: mapUnfocus(props.exp.r),
-                  },
-                  focus(false),
-                  update,
-                ),
-                props.focus,
-              )}
-              borderless={false}
-            />
-            =
+          <div className={styles.leftAndOperatorContainer}>
+            <div className={styles.leftAndOperator}>
+              <Exp
+                {...props}
+                exp={props.exp.l}
+                update={l => pipe(
+                  props.exp,
+                  update({ ...props.exp, l }),
+                  props.update,
+                )}
+                focus={l => pipe(
+                  props.exp,
+                  pipe(
+                    {
+                      ...props.exp,
+                      l,
+                      m: mapUnfocus(props.exp.m),
+                      r: mapUnfocus(props.exp.r),
+                    },
+                    focus(false),
+                    update,
+                  ),
+                  props.focus,
+                )}
+                borderless={false}
+              />
+              =
+            </div>
           </div>
           <Newline newline={props.exp.m.newline} />
           <Exp
@@ -180,34 +182,36 @@ const Binary = <E extends Binary>({
         operator === undefined ? "…" : operator,
         props,
         <>
-          <div className={styles.noOverflow}>
-            <Exp
-              {...props}
-              exp={props.exp.l}
-              update={l => pipe(
-                props.exp,
-                update({ ...props.exp, l }),
-                props.update,
-              )}
-              focus={l => pipe(
-                props.exp,
-                pipe(
-                  {
-                    ...props.exp,
-                    l,
-                    r: mapUnfocus(props.exp.r),
-                  },
-                  focus(false),
-                  update,
-                ),
-                props.focus,
-              )}
-              borderless={
-                props.exp.l.type === props.exp.type &&
-                associates(props.exp) === "left"
-              }
-            />
-            {operator === undefined ? "" : operator}
+          <div className={styles.leftAndOperatorContainer}>
+            <div className={styles.leftAndOperator}>
+              <Exp
+                {...props}
+                exp={props.exp.l}
+                update={l => pipe(
+                  props.exp,
+                  update({ ...props.exp, l }),
+                  props.update,
+                )}
+                focus={l => pipe(
+                  props.exp,
+                  pipe(
+                    {
+                      ...props.exp,
+                      l,
+                      r: mapUnfocus(props.exp.r),
+                    },
+                    focus(false),
+                    update,
+                  ),
+                  props.focus,
+                )}
+                borderless={
+                  props.exp.l.type === props.exp.type &&
+                  associates(props.exp) === "left"
+                }
+              />
+              {operator === undefined ? "" : operator}
+            </div>
           </div>
           <Newline newline={props.exp.r.newline} />
           <Exp
