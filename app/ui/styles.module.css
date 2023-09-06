@@ -84,30 +84,23 @@
   background-color: transparent;
 }
 
-.unary > textarea {
+.unary {
+  resize: none;
   border: none;
-  background-color: var(--mantle);
+}
+
+.bind {
+  font-style: italic;
+  background-color: var(--base);
 }
 
 .sym {
-  background-color: var(--crust);
-}
-
-.sym > textarea {
   font-weight: bold;
   background-color: var(--crust);
 }
 
-.bind {
-  border-style: dashed;
-}
-
 .focused {
   border-color: var(--overlay2);
-  background-color: var(--surface0);
-}
-
-.focused > textarea {
   background-color: var(--surface0);
 }
 

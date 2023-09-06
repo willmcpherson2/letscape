@@ -247,50 +247,57 @@ const Binary = <E extends Binary>({
 }
 
 const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const ref = useRef<HTMLTextAreaElement | null>(null);
   useFocus(props, ref);
-  useInput(props, inputRef);
+  useInput(props, ref);
+
+  const s = props.exp.hidden && !props.exp.inputting ? "…" : props.exp.s;
 
   return (
-    <div className={style(props)} onClick={handleClick(props)}>
-      {hide(
-        "…",
-        props,
-        <textarea
-          ref={inputRef}
-          onClick={e => e.stopPropagation()}
-          onFocus={() => pipe(
-            props.exp,
-            mapUnfocus,
-            setMeta("inputting", true),
-            setMeta("focused", true),
-            props.focus,
-          )}
-          onBlur={() => pipe(
-            props.exp,
-            pipe(props.exp, unsetMeta("inputting"), update),
-            props.update,
-          )}
-          value={props.exp.s}
-          onChange={e => {
-            const s = e.target.value;
-            pipe(
-              props.exp,
-              edit(currentTime(props.root), { ...props.exp, s }),
-              props.update,
-            );
-          }}
-          rows={props.exp.s.split("\n").length}
-          cols={pipe(
-            props.exp.s.split("\n"),
-            map(s => s.length),
-            reduce(1, Math.max),
-          )}
-          spellCheck={false}
-        />
+    <textarea
+      ref={ref}
+      className={style(props)}
+      onMouseDown={e => {
+        e.stopPropagation();
+        if (!props.exp.inputting) {
+          e.preventDefault();
+        }
+      }}
+      onClick={e => {
+        e.stopPropagation();
+        if (!props.exp.inputting) {
+          handleClick(props)(e);
+        }
+      }}
+      onFocus={() => pipe(
+        props.exp,
+        mapUnfocus,
+        setMeta("inputting", true),
+        setMeta("focused", true),
+        props.focus,
       )}
-    </div>
+      onBlur={() => pipe(
+        props.exp,
+        pipe(props.exp, unsetMeta("inputting"), update),
+        props.update,
+      )}
+      value={s}
+      onChange={e => {
+        const s = e.target.value;
+        pipe(
+          props.exp,
+          edit(currentTime(props.root), { ...props.exp, s }),
+          props.update,
+        );
+      }}
+      rows={s.split("\n").length}
+      cols={pipe(
+        s.split("\n"),
+        map(s => s.length),
+        reduce(1, Math.max),
+      )}
+      spellCheck={false}
+    />
   );
 }
 
@@ -312,7 +319,7 @@ const Null = (props: Props<Null>): ReactElement => {
 const Newline = (props: { newline?: true }) =>
   props.newline ? <hr className={styles.newline} /> : null;
 
-const useFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLDivElement | null>) =>
+const useFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLElement | null>) =>
   useEffect(
     () => {
       if (ref.current && props.container.current && props.exp.focused) {
@@ -348,7 +355,7 @@ const style = (props: Props<Exp>): string =>
     props.exp.type === "sym" ? styles.sym : "",
   );
 
-const handleClick = (props: Props<Exp>) => (e: MouseEvent<HTMLDivElement>) => {
+const handleClick = (props: Props<Exp>) => (e: MouseEvent<HTMLElement>) => {
   e.stopPropagation();
   pipe(
     props.exp,
