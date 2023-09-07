@@ -357,22 +357,6 @@ const useInput = (props: Props<Exp>, ref: MutableRefObject<HTMLTextAreaElement |
     [props.exp.inputting],
   );
 
-const hide = (props: Props<Exp>, hidden: ReactElement, visible: ReactElement): ReactElement =>
-  shouldHide(props) ? hidden : visible;
-
-const style = (props: Props<Exp>): string =>
-  classNames(
-    styles.exp,
-    props.exp.focused ? styles.focused : "",
-    props.borderless && !shouldHide(props) ? styles.borderless : "",
-    isUnary(props.exp) ? styles.unary : "",
-    props.exp.type === "bind" ? styles.bind : "",
-    props.exp.type === "sym" ? styles.sym : "",
-  );
-
-const shouldHide = (props: Props<Exp>): boolean =>
-  !!props.exp.hidden && !props.exp.inputting && pipe(props.exp, getFocused, isEmpty);
-
 const handleClick = (props: Props<Exp>) => (e: MouseEvent<HTMLElement>) => {
   e.stopPropagation();
   console.log(e.ctrlKey);
@@ -389,6 +373,22 @@ const handleClick = (props: Props<Exp>) => (e: MouseEvent<HTMLElement>) => {
       props.focus,
     );
 }
+
+const hide = (props: Props<Exp>, hidden: ReactElement, visible: ReactElement): ReactElement =>
+  shouldHide(props) ? hidden : visible;
+
+const style = (props: Props<Exp>): string =>
+  classNames(
+    styles.exp,
+    props.exp.focused ? styles.focused : "",
+    props.borderless && !shouldHide(props) ? styles.borderless : "",
+    isUnary(props.exp) ? styles.unary : "",
+    props.exp.type === "bind" ? styles.bind : "",
+    props.exp.type === "sym" ? styles.sym : "",
+  );
+
+const shouldHide = (props: Props<Exp>): boolean =>
+  !!props.exp.hidden && !props.exp.inputting && pipe(props.exp, getFocused, isEmpty);
 
 const mapUnfocus = (exp: Exp): Exp =>
   pipe(exp, mapExp(focus(false)));
