@@ -375,12 +375,19 @@ const shouldHide = (props: Props<Exp>): boolean =>
 
 const handleClick = (props: Props<Exp>) => (e: MouseEvent<HTMLElement>) => {
   e.stopPropagation();
-  pipe(
-    props.exp,
-    mapUnfocus,
-    focus(!focused(props.exp)),
-    props.focus,
-  );
+  console.log(e.ctrlKey);
+  e.ctrlKey
+    ? pipe(
+      props.exp,
+      focus(!focused(props.exp)),
+      props.update,
+    )
+    : pipe(
+      props.exp,
+      mapUnfocus,
+      focus(!focused(props.exp)),
+      props.focus,
+    );
 }
 
 const mapUnfocus = (exp: Exp): Exp =>
