@@ -359,7 +359,6 @@ const useInput = (props: Props<Exp>, ref: MutableRefObject<HTMLTextAreaElement |
 
 const handleClick = (props: Props<Exp>) => (e: MouseEvent<HTMLElement>) => {
   e.stopPropagation();
-  console.log(e.ctrlKey);
   e.ctrlKey
     ? pipe(
       props.exp,
