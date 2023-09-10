@@ -23,7 +23,7 @@ import { exists, filter, head, isNonEmpty, map, size } from "fp-ts/Array";
 import { pipe } from "fp-ts/function";
 import { fold, isSome } from "fp-ts/Option";
 import { Clipboard, copy, showClipboard } from "ui/clipboard";
-import { evalDeep, needsEval } from "core/eval";
+import { evalDeep, evalRewrite, needsEval, stepRewrite } from "core/eval";
 import { edit, editFocused, hasRedo, hasUndo, currentTime, redo, undo } from "core/history";
 import { pull, push } from "./remote";
 import { log } from "core/utils";
@@ -43,6 +43,7 @@ export type Action = {
   | "hide"
   | "newline"
   | "evaluate"
+  | "step"
   | "copy"
   | "paste"
   | "let"
@@ -93,6 +94,7 @@ export default function Actions(props: { actions: Actions }): ReactElement {
                 .with("hide", () => "Hide")
                 .with("newline", () => "New line")
                 .with("evaluate", () => "Evaluate")
+                .with("step", () => "Step")
                 .with("copy", () => "Copy")
                 .with("paste", () => "Paste")
                 .with("let", () => "Let")
@@ -164,7 +166,6 @@ export const makeActions = (
   const onlyRootFocused = root.focused && size(focused) === 1;
   const undoFocused = pipe(focused, exists(hasUndo));
   const redoFocused = pipe(focused, exists(hasRedo));
-  const anyNeedsEval = pipe(focused, exists(needsEval));
 
   return [
     {
@@ -265,12 +266,14 @@ export const makeActions = (
     {
       type: "evaluate",
       key: mods("e"),
-      action: () => pipe(
-        root,
-        mapFocused(exp => edit(currentTime(root), evalDeep(exp))(exp)),
-        setExp,
-      ),
-      actionable: !inputting && anyNeedsEval,
+      action: () => setExp(stepRewrite(root, evalDeep(evalRewrite)(root))),
+      actionable: !inputting && needsEval(root),
+    },
+    {
+      type: "step",
+      key: mods("E", "shift"),
+      action: () => pipe(root, evalDeep(stepRewrite), setExp),
+      actionable: !inputting && needsEval(root),
     },
     {
       type: "copy",
