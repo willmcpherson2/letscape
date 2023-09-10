@@ -8,12 +8,11 @@ import {
   getStyle,
   mapFocused,
   getVal,
-  unsetMeta,
 } from "./exp";
 import * as R from "fp-ts/Record";
 import { map, reduce } from "fp-ts/Array"
 import * as S from "fp-ts/string";
-import { flow, pipe } from "fp-ts/function";
+import { pipe } from "fp-ts/function";
 import { Option, fold, getOrElse, none, some } from "fp-ts/Option";
 
 const keys = (changes: Changes): Time[] =>
@@ -90,14 +89,8 @@ const timeAfter = (current: Time, time: Time, changes: Changes): Time =>
 const firstTime = (current: Time, changes: Changes): Time =>
   timeAfter(current, 0, changes);
 
-export const wipeHistory = (exp: Exp): Exp =>
-  pipe(
-    exp,
-    mapExp(flow(unsetMeta("undos"), unsetMeta("redos"))),
-  );
-
 const addChangeExp = (current: Time, change: Exp) => (exp: Exp): Exp => ({
-  ...wipeHistory(change),
+  ...change,
   undos: addChange(
     firstTime(current, exp.redos ?? {}),
     getVal(exp),
