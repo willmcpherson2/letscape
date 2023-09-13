@@ -266,13 +266,31 @@ export const makeActions = (
     {
       type: "evaluate",
       key: mods("e"),
-      action: () => setExp(stepRewrite(root, evalDeep(evalRewrite)(root))),
+      action: () => pipe(
+        root,
+        edit(
+          currentTime(root),
+          evalDeep({
+            rewrite: evalRewrite,
+            time: currentTime(root),
+            exp: root,
+          }).exp,
+        ),
+        setExp,
+      ),
       actionable: !inputting && needsEval(root),
     },
     {
       type: "step",
       key: mods("E", "shift"),
-      action: () => pipe(root, evalDeep(stepRewrite), setExp),
+      action: () => pipe(
+        evalDeep({
+          rewrite: stepRewrite,
+          time: currentTime(root),
+          exp: root,
+        }).exp,
+        setExp,
+      ),
       actionable: !inputting && needsEval(root),
     },
     {

@@ -6,166 +6,186 @@ import {
   getMeta,
   reduceExp,
   Binary,
-  onSubExps,
   isCode,
+  Time,
+  Bind,
 } from "./exp";
 import { identity, pipe } from "fp-ts/function";
 import { P, match } from "ts-pattern";
-import { currentTime, edit } from "./history";
+import { edit } from "./history";
 
-export type Rewrite = (exp: Exp, change: Exp) => Exp;
+export type Rewrite = (state: State<Exp>, change: Exp) => State<Exp>;
 
-export const evalRewrite: Rewrite = (exp, change) =>
-  ({ ...change, ...getMeta(exp) });
+type State<E extends Exp> = {
+  rewrite: Rewrite;
+  time: Time;
+  exp: E;
+};
 
-export const stepRewrite: Rewrite = (exp, change) =>
-  edit(currentTime(exp), evalRewrite(exp, change))(exp);
+export const evalRewrite: Rewrite = (state, change) => ({
+  ...state,
+  exp: { ...change, ...getMeta(state.exp) },
+});
 
-export const evalDeep = (f: Rewrite) => (exp: Exp): Exp =>
-  match(evaluate(f)(exp))
-    .with({ type: "cons" }, cons => ({
-      ...cons,
-      l: evalDeep(f)(cons.l),
-      r: evalDeep(f)(cons.r),
-    }))
-    .otherwise(identity);
+export const stepRewrite: Rewrite = (state, change) => ({
+  ...state,
+  time: state.time + 1,
+  exp: edit(state.time, { ...change, ...getMeta(state.exp) })(state.exp),
+});
 
 export const needsEval = (exp: Exp): boolean =>
   match(exp)
     .with({ type: "cons" }, cons => isCode(cons.l) || isCode(cons.r))
     .otherwise(isCode);
 
-export const evaluate = (f: Rewrite) => (exp: Exp): Exp =>
-  match(exp)
-    .with({ type: "let" }, evalLet(f))
-    .with({ type: "match" }, evalMatch(f))
-    .with({ type: "app" }, evalApp(f))
-    .with({ type: "var" }, va => f(va, { type: "null" }))
+export const evalDeep = (exp: State<Exp>): State<Exp> =>
+  match(evaluate(exp))
+    .with({ exp: { type: "cons" } }, cons => {
+      const l = evalDeep({ ...cons, exp: cons.exp.l });
+      const r = evalDeep({ ...l, exp: cons.exp.r });
+      return { ...r, exp: { ...cons.exp, l: l.exp, r: r.exp } };
+    })
     .otherwise(identity);
 
-const evalLet = (f: Rewrite) => (le: Let): Exp =>
-  match(evaluate(f)(le.l))
-    .with({ type: "match" }, l =>
-      match(evaluate(f)(le.m))
-        .with({ type: "match" }, m =>
-          evaluate(f)(unfold(f)(le, l, m))
-        )
-        .otherwise(m => f({ ...le, l, m }, { type: "null" }))
+export const evaluate = (exp: State<Exp>): State<Exp> =>
+  match(exp)
+    .with({ exp: { type: "let" } }, le => evalLet({ ...exp, exp: le.exp }))
+    .with({ exp: { type: "match" } }, ma => evalMatch({ ...exp, exp: ma.exp }))
+    .with({ exp: { type: "app" } }, app => evalApp({ ...exp, exp: app.exp }))
+    .with({ exp: { type: "var" } }, va => exp.rewrite(
+      { ...exp, exp: va.exp },
+      { type: "null" },
+    ))
+    .otherwise(identity);
+
+const evalLet = (le: State<Let>): State<Exp> =>
+  match(evaluate({ ...le, exp: le.exp.l }))
+    .with({ exp: { type: "match" } }, unfold(le))
+    .with({ exp: { type: "fun" } }, unfold(le))
+    .with({ exp: { type: "cons" } }, unfold(le))
+    .with({ exp: { type: "sym" } }, l =>
+      match(evaluate({ ...l, exp: le.exp.m }))
+        .with({ exp: { type: "sym", s: l.exp.s } }, m => evaluate(m.rewrite(
+          { ...m, exp: { ...le.exp, l: l.exp, m: m.exp } },
+          le.exp.r,
+        )))
+        .otherwise(m => m.rewrite(
+          { ...m, exp: { ...le.exp, l: l.exp, m: m.exp } },
+          { type: "null" },
+        ))
     )
-    .with({ type: "fun" }, l =>
-      match(evaluate(f)(le.m))
-        .with({ type: "fun" }, m =>
-          evaluate(f)(unfold(f)(le, l, m))
-        )
-        .otherwise(m => f({ ...le, l, m }, { type: "null" }))
+    .with({ exp: { type: "null" } }, l =>
+      match(evaluate({ ...l, exp: le.exp.m }))
+        .with({ exp: { type: "null" } }, m => evaluate(m.rewrite(
+          { ...m, exp: { ...le.exp, l: l.exp, m: m.exp } },
+          le.exp.r,
+        )))
+        .otherwise(m => m.rewrite(
+          { ...m, exp: { ...le.exp, l: l.exp, m: m.exp } },
+          { type: "null" },
+        ))
     )
-    .with({ type: "cons" }, l =>
-      match(evaluate(f)(le.m))
-        .with({ type: "cons" }, m =>
-          evaluate(f)(unfold(f)(le, l, m))
-        )
-        .otherwise(m => f({ ...le, l, m }, { type: "null" }))
-    )
-    .with({ type: "bind" }, l =>
-      evaluate(f)(f({ ...le, l }, substitute(f)(l.s, le.m)(le.r)))
-    )
-    .with({ type: "sym" }, l =>
-      match(evaluate(f)(le.m))
-        .with({ type: "sym", s: l.s }, m =>
-          evaluate(f)(f({ ...le, l, m }, le.r))
-        )
-        .otherwise(m => f({ ...le, l, m }, { type: "null" }))
-    )
-    .with({ type: "null" }, l =>
-      match(evaluate(f)(le.m))
-        .with({ type: "null" }, m => evaluate(f)(f({ ...le, l, m }, le.r)))
-        .otherwise(m => f({ ...le, l, m }, { type: "null" }))
-    )
+    .with({ exp: { type: "bind" } }, bind => {
+      const r = substitute(bind.exp, le.exp.m, { ...bind, exp: le.exp.r });
+      return evaluate(r.rewrite(
+        { ...r, exp: { ...le.exp, l: bind.exp } },
+        r.exp,
+      ));
+    })
     .run();
 
-const unfold = (f: Rewrite) => (le: Let, l: Binary, m: Binary): Exp =>
-  f(
-    le,
-    {
-      type: "let",
-      l: l.l,
-      m: m.l,
-      r: {
+const unfold = <B extends Binary>(le: State<Let>) => (l: State<B>): State<Exp> =>
+  match(evaluate({ ...l, exp: le.exp.m }))
+    .with({ exp: { type: l.exp.type } }, m => evaluate(m.rewrite(
+      { ...m, exp: le.exp },
+      {
         type: "let",
-        l: l.r,
-        m: m.r,
-        r: le.r,
+        l: l.exp.l,
+        m: m.exp.l,
+        r: {
+          type: "let",
+          l: l.exp.r,
+          m: m.exp.r,
+          r: le.exp.r,
+        },
+      }
+    )))
+    .otherwise(m => m.rewrite(
+      { ...m, exp: { ...le.exp, l: l.exp, m: m.exp } },
+      { type: "null" }
+    ));
+
+const evalMatch = (ma: State<Match>): State<Exp> =>
+  match(evaluate({ ...ma, exp: ma.exp.l }))
+    .with({ exp: { type: "fun" } }, fun =>
+      ({ ...fun, exp: { ...ma.exp, l: fun.exp } })
+    )
+    .with({ exp: { type: "null" } }, nul => evaluate(nul.rewrite(
+      { ...nul, exp: { ...ma.exp, l: nul.exp } },
+      ma.exp.r,
+    )))
+    .otherwise(l => l.rewrite(
+      { ...l, exp: { ...ma.exp, l: l.exp } },
+      l.exp,
+    ));
+
+const evalApp = (app: State<App>): State<Exp> =>
+  match(evaluate({ ...app, exp: app.exp.l }))
+    .with({ exp: { type: "fun" } }, fun => evaluate(fun.rewrite(
+      { ...fun, exp: { ...app.exp, l: fun.exp } },
+      {
+        type: "let",
+        l: fun.exp.l,
+        m: app.exp.r,
+        r: fun.exp.r,
       },
-    }
-  );
+    )))
+    .with({ exp: { type: "match" } }, ma => evaluate(ma.rewrite(
+      { ...ma, exp: { ...app.exp, l: ma.exp } },
+      {
+        ...ma.exp,
+        l: { ...app.exp, l: ma.exp.l, ...getMeta(ma.exp.l) },
+        r: { ...app.exp, l: ma.exp.r, ...getMeta(ma.exp.r) },
+      },
+    )))
+    .otherwise(l => l.rewrite(
+      { ...l, exp: { ...app.exp, l: l.exp } },
+      { type: "null" },
+    ));
 
-const evalMatch = (f: Rewrite) => (ma: Match): Exp =>
-  match(evaluate(f)(ma.l))
-    .with({ type: "fun" }, l => ({ ...ma, l }))
-    .with({ type: "null" }, l => evaluate(f)(f({ ...ma, l }, ma.r)))
-    .otherwise(l => f({ ...ma, l }, l));
-
-const evalApp = (f: Rewrite) => (app: App): Exp =>
-  match(app.l)
-    .with({ type: "let" }, { type: "app" }, { type: "var" }, l =>
-      evaluate(f)({
-        ...app,
-        l: evaluate(f)(l),
-      })
-    )
-    .with({ type: "fun" }, fun =>
-      evaluate(f)(
-        f(
-          app,
-          {
-            type: "let",
-            l: fun.l,
-            m: app.r,
-            r: fun.r,
-          },
-        )
-      )
-    )
-    .with({ type: "match" }, m =>
-      evaluate(f)(
-        f(
-          app,
-          {
-            ...m,
-            l: { ...app, l: m.l, ...getMeta(m.l) },
-            r: { ...app, l: m.r, ...getMeta(m.r) },
-          },
-        )
-      )
-    )
-    .otherwise(() => f(app, { type: "null" }));
-
-const substitute = (f: Rewrite) => (s: string, m: Exp) => (r: Exp): Exp =>
-  match(r)
-    .with({ type: "let" }, le =>
-      binds(le.l, s)
-        ? le
-        : pipe(le, onSubExps(substitute(f)(s, m)))
-    )
-    .with({ type: "fun" }, fun =>
-      binds(fun.l, s)
-        ? fun
-        : pipe(fun, onSubExps(substitute(f)(s, m)))
-    )
-    .with({ l: P._ }, onSubExps(substitute(f)(s, m)))
-    .with({ type: "var" }, va =>
-      va.s === s
-        ? f(
-          va,
-          {
-            type: "let",
-            l: { type: "bind", s },
-            m,
-            r: m,
-          },
-        )
-        : va
-    )
+const substitute = (bind: Bind, def: Exp, scope: State<Exp>): State<Exp> =>
+  match(scope)
+    .with({ exp: { type: "let" } }, le => {
+      if (binds(le.exp.l, bind.s)) {
+        return le;
+      }
+      const l = substitute(bind, def, { ...le, exp: le.exp.l });
+      const m = substitute(bind, def, { ...l, exp: le.exp.m });
+      const r = substitute(bind, def, { ...m, exp: le.exp.r });
+      return { ...r, exp: { ...le.exp, l: l.exp, r: r.exp } };
+    })
+    .with({ exp: { type: "fun" } }, fun => {
+      if (binds(fun.exp.l, bind.s)) {
+        return fun;
+      }
+      const l = substitute(bind, def, { ...fun, exp: fun.exp.l });
+      const r = substitute(bind, def, { ...l, exp: fun.exp.r });
+      return { ...r, exp: { ...fun.exp, l: l.exp, r: r.exp } };
+    })
+    .with({ exp: { l: P._ } }, exp => {
+      const l = substitute(bind, def, { ...exp, exp: exp.exp.l });
+      const r = substitute(bind, def, { ...l, exp: exp.exp.r });
+      return { ...r, exp: { ...exp.exp, l: l.exp, r: r.exp } };
+    })
+    .with({ exp: { type: "var", s: bind.s } }, va => va.rewrite(
+      va,
+      {
+        type: "let",
+        l: bind,
+        m: def,
+        r: def,
+      },
+    ))
     .otherwise(identity);
 
 const binds = (exp: Exp, s: string): boolean =>
