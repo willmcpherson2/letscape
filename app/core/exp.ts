@@ -1,8 +1,10 @@
 import { pipe, identity } from "fp-ts/function";
 import { toArray } from "fp-ts/Record";
 import { match, P } from "ts-pattern";
-import { map, intercalate, reverse } from "fp-ts/Array"
+import { map, intercalate, sort } from "fp-ts/Array"
 import * as S from "fp-ts/string";
+import * as N from "fp-ts/number";
+import { fromCompare } from "fp-ts/Ord";
 
 export type Exp = Val & Meta;
 
@@ -289,17 +291,19 @@ const addNewlines = (lines: string[]): string =>
   pipe(lines, intercalate(S.Monoid)("\n"));
 
 export const showHistory = (exp: Exp, indent: string = ""): string => addNewlines([
-  ...showChanges(exp.redos ?? {}, indent),
-  indent + "now: " + showVal(exp),
   ...showChanges(exp.undos ?? {}, indent),
+  indent + "now: " + showVal(exp),
   ...showSubHistories(exp, indent),
+  ...showChanges(exp.redos ?? {}, indent),
 ]);
 
 export const showChanges = (changes: Changes, indent: string = ""): string[] =>
   pipe(
     changes,
     toArray,
-    reverse,
+    sort<[string, Val]>(fromCompare(([t1, _e1], [t2, _e2]) =>
+      N.Ord.compare(parseInt(t1), parseInt(t2))
+    )),
     map(([time, exp]) => addNewlines([
       indent + time + ": " + showVal(exp),
       ...showSubHistories(exp, addIndent(indent)),
