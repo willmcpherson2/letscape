@@ -21,21 +21,21 @@ export type Val =
 
 export type Meta = History & Style;
 
-export type History = {
-  redos?: Changes;
-  undos?: Changes;
-};
+export type History = Partial<{
+  redos: Changes;
+  undos: Changes;
+}>;
 
 export type Changes = Record<Time, Val>;
 
 export type Time = number;
 
-export type Style = {
-  focused?: true;
-  inputting?: true;
-  hidden?: true;
-  newline?: true;
-};
+export type Style = Partial<{
+  focused: true;
+  inputting: true;
+  hidden: true;
+  newline: true;
+}>;
 
 export type Binary = Exclude<Extract<Exp, { l: Exp; r: Exp }>, { m: Exp }>;
 
