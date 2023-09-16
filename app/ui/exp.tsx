@@ -13,7 +13,7 @@ import {
   setMeta,
   getFocused,
 } from "core/exp";
-import { edit, currentTime } from "core/history";
+import { edit, nextTime } from "core/history";
 import styles from "./styles.module.css";
 import {
   ReactElement,
@@ -294,7 +294,7 @@ const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
         const s = e.target.value;
         pipe(
           props.exp,
-          edit(currentTime(props.root), { ...props.exp, s }),
+          edit(nextTime(props.root), { ...props.exp, s }),
           props.update,
         );
       }}

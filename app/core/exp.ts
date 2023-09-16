@@ -1,10 +1,7 @@
 import { pipe, identity } from "fp-ts/function";
-import { toArray } from "fp-ts/Record";
 import { match, P } from "ts-pattern";
-import { map, intercalate, sort } from "fp-ts/Array"
+import { intercalate } from "fp-ts/Array"
 import * as S from "fp-ts/string";
-import * as N from "fp-ts/number";
-import { fromCompare } from "fp-ts/Ord";
 
 export type Exp = Val & Meta;
 
@@ -22,11 +19,10 @@ export type Val =
 export type Meta = History & Style;
 
 export type History = Partial<{
-  redos: Changes;
-  undos: Changes;
+  redo: Exp;
+  time: Time;
+  undo: Exp;
 }>;
-
-export type Changes = Record<Time, Val>;
 
 export type Time = number;
 
@@ -97,8 +93,9 @@ export const getMeta = (exp: Exp): Meta => ({
 });
 
 export const getHistory = (exp: Exp): History => ({
-  undos: exp.undos,
-  redos: exp.redos,
+  undo: exp.undo,
+  time: exp.time,
+  redo: exp.redo,
 });
 
 export const getStyle = (exp: Exp): Style => ({
@@ -287,46 +284,29 @@ export const getFocused = (root: Exp): Exp[] =>
 
 const addIndent = (indent: string): string => indent + "  ";
 
-const addNewlines = (lines: string[]): string =>
-  pipe(lines, intercalate(S.Monoid)("\n"));
+export const showHistory = (exp: Exp, indent: string = ""): string =>
+  (exp.undo ? showHistory(exp.undo, addIndent(indent)) : "") +
+  (indent + (exp.time ?? 0) + ": " + showVal(exp) + "\n") +
+  showSubHistories(exp, indent) +
+  (exp.redo ? showHistory(exp.redo, addIndent(indent)) : "");
 
-export const showHistory = (exp: Exp, indent: string = ""): string => addNewlines([
-  ...showChanges(exp.undos ?? {}, indent),
-  indent + "now: " + showVal(exp),
-  ...showSubHistories(exp, indent),
-  ...showChanges(exp.redos ?? {}, indent),
-]);
-
-export const showChanges = (changes: Changes, indent: string = ""): string[] =>
-  pipe(
-    changes,
-    toArray,
-    sort<[string, Val]>(fromCompare(([t1, _e1], [t2, _e2]) =>
-      N.Ord.compare(parseInt(t1), parseInt(t2))
-    )),
-    map(([time, exp]) => addNewlines([
-      indent + time + ": " + showVal(exp),
-      ...showSubHistories(exp, addIndent(indent)),
-    ])),
-  );
-
-const showSubHistories = (exp: Val, indent: string = ""): string[] =>
+const showSubHistories = (exp: Val, indent: string = ""): string =>
   match(exp)
-    .with({ type: "let" }, le => [
-      indent + "l:",
-      showHistory(le.l, addIndent(indent)),
-      indent + "m:",
-      showHistory(le.m, addIndent(indent)),
-      indent + "r:",
-      showHistory(le.r, addIndent(indent)),
-    ])
-    .with({ l: P._ }, exp => [
-      indent + "l:",
-      showHistory(exp.l, addIndent(indent)),
-      indent + "r:",
-      showHistory(exp.r, addIndent(indent)),
-    ])
-    .otherwise(() => []);
+    .with({ type: "let" }, le =>
+      indent + "l:" + "\n" +
+      showHistory(le.l, addIndent(indent)) +
+      indent + "m:" + "\n" +
+      showHistory(le.m, addIndent(indent)) +
+      indent + "r:" + "\n" +
+      showHistory(le.r, addIndent(indent))
+    )
+    .with({ l: P._ }, exp =>
+      indent + "l:" + "\n" +
+      showHistory(exp.l, addIndent(indent)) +
+      indent + "r:" + "\n" +
+      showHistory(exp.r, addIndent(indent))
+    )
+    .otherwise(() => "");
 
 export const showVal = (exp: Val): string => match(exp)
   .with({ type: "let" }, le =>

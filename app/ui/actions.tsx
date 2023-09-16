@@ -1,8 +1,8 @@
 import styles from "./styles.module.css";
 import {
   Exp,
+  Val,
   getFocused,
-  getMeta,
   inMeta,
   isBinary,
   isLeaf,
@@ -24,7 +24,15 @@ import { pipe } from "fp-ts/function";
 import { fold, isSome } from "fp-ts/Option";
 import { Clipboard, copy, showClipboard } from "ui/clipboard";
 import { evalDeep, evalRewrite, needsEval, stepRewrite } from "core/eval";
-import { edit, editFocused, hasRedo, hasUndo, currentTime, redo, undo } from "core/history";
+import {
+  edit,
+  editFocused,
+  hasRedo,
+  hasUndo,
+  nextTime,
+  redo,
+  undo,
+} from "core/history";
 import { pull, push } from "./remote";
 import { log } from "core/utils";
 
@@ -179,7 +187,7 @@ export const makeActions = (
       key: mods("P", "shift"),
       action: () => pull().then(exp => setExp(pipe(
         root,
-        edit(currentTime(root), exp),
+        edit(nextTime(root), exp),
       ))),
       actionable: !inputting,
     },
@@ -269,10 +277,10 @@ export const makeActions = (
       action: () => pipe(
         root,
         edit(
-          currentTime(root),
+          nextTime(root),
           evalDeep({
             rewrite: evalRewrite,
-            time: currentTime(root),
+            time: nextTime(root),
             exp: root,
           }).exp,
         ),
@@ -286,7 +294,7 @@ export const makeActions = (
       action: () => pipe(
         evalDeep({
           rewrite: stepRewrite,
-          time: currentTime(root),
+          time: nextTime(root),
           exp: root,
         }).exp,
         setExp,
@@ -313,8 +321,12 @@ export const makeActions = (
         clipboard,
         fold(
           () => { },
-          exp => setExp(pipe(root, editFocused(exp)))
-        )
+          exp => pipe(
+            root,
+            editFocused(nextTime(root), exp),
+            setExp,
+          ),
+        ),
       ),
       actionable: !inputting && anyFocused && isSome(clipboard),
     },
@@ -398,7 +410,6 @@ export const makeActions = (
         {
           type: "var",
           s: "",
-          inputting: true,
         },
       ),
       actionable: !inputting && anyFocused,
@@ -412,7 +423,6 @@ export const makeActions = (
         {
           type: "bind",
           s: "",
-          inputting: true,
         },
       ),
       actionable: !inputting && anyFocused,
@@ -426,7 +436,6 @@ export const makeActions = (
         {
           type: "sym",
           s: "",
-          inputting: true,
         },
       ),
       actionable: !inputting && anyFocused,
@@ -462,21 +471,23 @@ export const makeActions = (
   ];
 }
 
-const newExp = (root: Exp, setExp: (exp: Exp) => void, exp: Exp) =>
-  pipe(
+const newExp = (root: Exp, setExp: (exp: Exp) => void, change: Val) => {
+  const time = nextTime(root);
+  return pipe(
     root,
-    mapFocused(e => pipe(
-      e,
+    mapFocused(exp => pipe(
+      exp,
       edit(
-        currentTime(root),
+        time,
         {
-          ...getMeta(e),
-          ...exp,
-          ...(exp.type === "let" && e.type === "let" ? { l: e.l, m: e.m, r: e.r } : {}),
-          ...(isBinary(exp) && isBinary(e) ? { l: e.l, r: e.r } : {}),
-          ...(isUnary(exp) && isUnary(e) ? { s: e.s } : {}),
+          ...change,
+          ...(change.type === "let" && exp.type === "let" ? { l: exp.l, m: exp.m, r: exp.r } : {}),
+          ...(isBinary(change) && isBinary(exp) ? { l: exp.l, r: exp.r } : {}),
+          ...(isUnary(change) && isUnary(exp) ? { s: exp.s } : {}),
         },
       ),
+      exp => isUnary(exp) ? { ...exp, inputting: true } : exp,
     )),
     setExp,
   );
+}

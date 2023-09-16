@@ -1,12 +1,13 @@
 "use server";
 
 import { Exp } from "core/exp";
-import { currentTime, edit } from "core/history";
+import { nextTime, edit } from "core/history";
 import { pipe } from "fp-ts/function";
 import { readFile, writeFile } from "node:fs/promises";
 
 const init: Exp = {
   type: "null",
+  time: 1,
   focused: true,
 };
 
@@ -24,6 +25,6 @@ export const pull = async (): Promise<Exp> => {
 
 export const push = async (exp: Exp) => {
   const e = await pull();
-  const s = pipe(e, edit(currentTime(e), exp), JSON.stringify);
+  const s = pipe(e, edit(nextTime(e), exp), JSON.stringify);
   await writeFile(dbFilename(), s, "utf8");
 }

@@ -1,135 +1,81 @@
+import { flow, pipe } from "fp-ts/function";
 import {
   Exp,
-  Val,
-  Changes,
-  mapExp,
-  reduceExp,
   Time,
+  Val,
   getStyle,
-  mapFocused,
-  getVal,
+  mapExp,
+  onSubExps,
+  reduceExp,
+  unsetMeta,
 } from "./exp";
-import * as R from "fp-ts/Record";
-import { map, reduce } from "fp-ts/Array"
-import * as S from "fp-ts/string";
-import { pipe } from "fp-ts/function";
-import { Option, fold, getOrElse, none, some } from "fp-ts/Option";
 
-const keys = (changes: Changes): Time[] =>
+export const maxCurrentTime = (exp: Exp): Time =>
   pipe(
-    R.keys(changes),
-    map(parseInt),
+    exp,
+    reduceExp(0, (time, exp) => Math.max(
+      time,
+      exp.time ?? 0,
+    )),
   );
 
-const reduceWithIndex = <A>(x: A, f: (time: Time, x: A, exp: Val) => A) =>
-  (changes: Changes): A =>
-    pipe(
-      changes,
-      R.reduceWithIndex(S.Ord)(x, (time, x, exp) =>
-        f(parseInt(time), x, exp)
-      ),
-    );
-
-const pop = (time: Time) => (changes: Changes): Option<[Val, Changes]> =>
-  R.pop(time.toString())(changes);
-
-const changesUnion = (a: Changes, b: Changes): Changes =>
-  ({ ...a, ...b });
-
-const addChange = (time: Time, change: Val, changes: Changes): Changes =>
-  ({ ...changes, [time]: change })
-
-const isEmpty = (changes: Changes): boolean => R.isEmpty(changes);
-
-export const currentTime = (exp: Exp): Time =>
-  Math.max(maxRedoTime(exp), maxUndoTime(exp));
-
-const maxRedoTime = (exp: Exp): Time => pipe(
-  exp,
-  reduceExp(0, (time, exp) => pipe(
-    exp.redos ?? {},
-    keys,
-    reduce(time, Math.max),
-  ))
-);
-
-const minRedoTime = (exp: Exp): Time => pipe(
-  exp,
-  reduceExp(Infinity, (time, exp) => pipe(
-    exp.redos ?? {},
-    keys,
-    reduce(time, Math.min),
-  ))
-);
-
-const maxUndoTime = (exp: Exp): Time => pipe(
-  exp,
-  reduceExp(0, (time, exp) => pipe(
-    exp.undos ?? {},
-    keys,
-    reduce(time, Math.max),
-  ))
-);
-
-const timeAfter = (current: Time, time: Time, changes: Changes): Time =>
+export const maxTime = (exp: Exp): Time =>
   pipe(
-    changes,
-    reduceWithIndex(none, (t, after: Option<Time>, _) =>
-      pipe(
-        after,
-        fold(
-          () => t > time ? some(t) : none,
-          after => some(t > time ? Math.min(t, after) : after),
-        ),
-      )
-    ),
-    getOrElse(() => current + 1),
+    exp,
+    reduceExp(0, (time, exp) => Math.max(
+      time,
+      exp.time ?? 0,
+      exp.undo ? maxTime(exp.undo) : 0,
+      exp.redo ? maxTime(exp.redo) : 0,
+    )),
   );
 
-const firstTime = (current: Time, changes: Changes): Time =>
-  timeAfter(current, 0, changes);
+export const nextTime = (exp: Exp): Time =>
+  maxTime(exp) + 1;
 
-const addChangeExp = (current: Time, change: Exp) => (exp: Exp): Exp => ({
-  ...change,
-  undos: addChange(
-    firstTime(current, exp.redos ?? {}),
-    getVal(exp),
-    changesUnion(exp.undos ?? {}, shiftChangesForward(current, exp.redos ?? {})),
-  ),
-  redos: {},
+export const minRedoTime = (exp: Exp): Time =>
+  pipe(
+    exp,
+    reduceExp(Infinity, (time, exp) => Math.min(
+      time,
+      exp.redo?.time ?? Infinity,
+    )),
+  );
+
+export const edit = (time: Time, change: Val) => (exp: Exp): Exp => ({
+  ...wipe(time, change),
+  ...getStyle(exp),
+  undo: redoAll(exp),
 });
 
-const shiftChangesForward = (current: Time, changes: Changes): Changes =>
-  pipe(
-    changes,
-    reduceWithIndex({}, (time, shifted, val) =>
-      addChange(timeAfter(current, time, changes), val, shifted)
-    ),
-  );
+const redoAll = (exp: Exp): Exp =>
+  hasRedo(exp) ? redoAll(redo(exp)) : exp;
 
-export const edit = (current: Time, change: Exp) => (exp: Exp): Exp =>
-  addChangeExp(current, change)(exp);
-
-export const editFocused = (change: Exp) => (root: Exp): Exp =>
-  pipe(root, mapFocused(edit(currentTime(root), change)));
+export const editFocused = (time: Time, change: Exp) => (root: Exp): Exp =>
+  root.focused
+    ? pipe(
+      root,
+      edit(time, change),
+      onSubExps(editFocused((change.time ?? 0) + 1, change)),
+    )
+    : pipe(
+      root,
+      onSubExps(editFocused(time, change)),
+    );
 
 export const undo = (exp: Exp): Exp => {
-  const time = maxUndoTime(exp);
+  const time = maxCurrentTime(exp);
   return pipe(
     exp,
-    mapExp(exp => pipe(
-      exp.undos ?? {},
-      pop(time),
-      fold(
-        () => exp,
-        ([val, undos]) => ({
-          ...val,
-          redos: addChange(time, exp, exp.redos ?? {}),
-          undos,
-          ...getStyle(exp),
-        }),
-      )
-    )),
+    mapExp(e =>
+      e.undo && e.time === time
+        ? {
+          ...e.undo,
+          ...getStyle(e),
+          redo: unsetMeta("undo")(e),
+        }
+        : e
+    ),
   );
 }
 
@@ -137,30 +83,33 @@ export const redo = (exp: Exp): Exp => {
   const time = minRedoTime(exp);
   return pipe(
     exp,
-    mapExp(exp => pipe(
-      exp.redos ?? {},
-      pop(time),
-      fold(
-        () => exp,
-        ([val, redos]) => ({
-          ...val,
-          redos,
-          undos: addChange(time, exp, exp.undos ?? {}),
-          ...getStyle(exp),
-        }),
-      )
-    )),
+    mapExp(e =>
+      e.redo && e.redo.time === time
+        ? {
+          ...e.redo,
+          ...getStyle(e),
+          undo: unsetMeta("redo")(e),
+        }
+        : e
+    ),
   );
 }
 
 export const hasUndo = (exp: Exp): boolean =>
   pipe(
     exp,
-    reduceExp(false, (yes, exp) => yes || !isEmpty(exp.undos ?? {})),
+    reduceExp(false, (yes, exp) => yes || !!exp.undo),
   );
 
 export const hasRedo = (exp: Exp): boolean =>
   pipe(
     exp,
-    reduceExp(false, (yes, exp) => yes || !isEmpty(exp.redos ?? {})),
+    reduceExp(false, (yes, exp) => yes || !!exp.redo),
+  );
+
+export const wipe = (time: Time, exp: Exp) =>
+  pipe(
+    exp,
+    mapExp(flow(unsetMeta("undo"), unsetMeta("redo"))),
+    mapExp(exp => ({ ...exp, time })),
   );

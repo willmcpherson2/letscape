@@ -24,13 +24,13 @@ type State<E extends Exp> = {
 
 export const evalRewrite: Rewrite = (state, change) => ({
   ...state,
-  exp: { ...change, ...getMeta(state.exp) },
+  exp: change,
 });
 
 export const stepRewrite: Rewrite = (state, change) => ({
   ...state,
   time: state.time + 1,
-  exp: edit(state.time, { ...change, ...getMeta(state.exp) })(state.exp),
+  exp: edit(state.time, change)(state.exp),
 });
 
 export const needsEval = (exp: Exp): boolean =>
