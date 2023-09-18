@@ -9,6 +9,7 @@ import {
   isCode,
   Time,
   Bind,
+  onSubExps,
 } from "./exp";
 import { identity, pipe } from "fp-ts/function";
 import { P, match } from "ts-pattern";
@@ -85,13 +86,10 @@ const evalLet = (le: State<Let>): State<Exp> =>
           { type: "null" },
         ))
     )
-    .with({ exp: { type: "bind" } }, bind => {
-      const r = substitute(bind.exp, le.exp.m, { ...bind, exp: le.exp.r });
-      return evaluate(r.rewrite(
-        { ...r, exp: { ...le.exp, l: bind.exp } },
-        r.exp,
-      ));
-    })
+    .with({ exp: { type: "bind" } }, bind => evaluate(bind.rewrite(
+      { ...bind, exp: { ...le.exp, l: bind.exp } },
+      substitute(bind.exp, le.exp.m)(le.exp.r),
+    )))
     .run();
 
 const unfold = <B extends Binary>(le: State<Let>) => (l: State<B>): State<Exp> =>
@@ -114,6 +112,33 @@ const unfold = <B extends Binary>(le: State<Let>) => (l: State<B>): State<Exp> =
       { ...m, exp: { ...le.exp, l: l.exp, m: m.exp } },
       { type: "null" }
     ));
+
+const substitute = (bind: Bind, def: Exp) => (scope: Exp): Exp =>
+  match(scope)
+    .with({ type: "let" }, { type: "fun" }, exp =>
+      binds(exp.l, bind)
+        ? exp
+        : onSubExps(substitute(bind, def))(exp)
+    )
+    .with({ l: P._ }, onSubExps(substitute(bind, def)))
+    .with({ type: "var", s: bind.s }, () => <Let>({
+      type: "let",
+      l: bind,
+      m: def,
+      r: def,
+    }))
+    .otherwise(identity);
+
+const binds = (exp: Exp, bind: Bind): boolean =>
+  pipe(
+    exp,
+    reduceExp(false, (yes, exp) =>
+      yes ||
+      match(exp)
+        .with({ type: "bind", s: bind.s }, () => true)
+        .otherwise(() => false)
+    ),
+  );
 
 const evalMatch = (ma: State<Match>): State<Exp> =>
   match(evaluate({ ...ma, exp: ma.exp.l }))
@@ -152,49 +177,3 @@ const evalApp = (app: State<App>): State<Exp> =>
       { ...l, exp: { ...app.exp, l: l.exp } },
       { type: "null" },
     ));
-
-const substitute = (bind: Bind, def: Exp, scope: State<Exp>): State<Exp> =>
-  match(scope)
-    .with({ exp: { type: "let" } }, le => {
-      if (binds(le.exp.l, bind.s)) {
-        return le;
-      }
-      const l = substitute(bind, def, { ...le, exp: le.exp.l });
-      const m = substitute(bind, def, { ...l, exp: le.exp.m });
-      const r = substitute(bind, def, { ...m, exp: le.exp.r });
-      return { ...r, exp: { ...le.exp, l: l.exp, r: r.exp } };
-    })
-    .with({ exp: { type: "fun" } }, fun => {
-      if (binds(fun.exp.l, bind.s)) {
-        return fun;
-      }
-      const l = substitute(bind, def, { ...fun, exp: fun.exp.l });
-      const r = substitute(bind, def, { ...l, exp: fun.exp.r });
-      return { ...r, exp: { ...fun.exp, l: l.exp, r: r.exp } };
-    })
-    .with({ exp: { l: P._ } }, exp => {
-      const l = substitute(bind, def, { ...exp, exp: exp.exp.l });
-      const r = substitute(bind, def, { ...l, exp: exp.exp.r });
-      return { ...r, exp: { ...exp.exp, l: l.exp, r: r.exp } };
-    })
-    .with({ exp: { type: "var", s: bind.s } }, va => va.rewrite(
-      va,
-      {
-        type: "let",
-        l: bind,
-        m: def,
-        r: def,
-      },
-    ))
-    .otherwise(identity);
-
-const binds = (exp: Exp, s: string): boolean =>
-  pipe(
-    exp,
-    reduceExp(false, (yes, exp) =>
-      yes ||
-      match(exp)
-        .with({ type: "bind" }, bind => bind.s === s)
-        .otherwise(() => false)
-    ),
-  );
