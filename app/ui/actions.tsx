@@ -185,10 +185,11 @@ export const makeActions = (
     {
       type: "pull",
       key: mods("P", "shift"),
-      action: () => pull().then(exp => setExp(pipe(
+      action: () => pull().then(exp => pipe(
         root,
         edit(nextTime(root), exp),
-      ))),
+        setExp,
+      )),
       actionable: !inputting,
     },
     {
@@ -200,16 +201,17 @@ export const makeActions = (
     {
       type: "exitInput",
       key: mods("ArrowUp"),
-      action: () => setExp(pipe(
+      action: () => pipe(
         root,
         mapFocused(unsetMeta("inputting")),
-      )),
+        setExp,
+      ),
       actionable: inputting,
     },
     {
       type: "redo",
       key: mods("ArrowUp", "alt"),
-      action: () => setExp(pipe(root, mapFocused(redo))),
+      action: () => pipe(root, mapFocused(redo), setExp),
       actionable: !inputting && redoFocused,
     },
     {
@@ -221,10 +223,11 @@ export const makeActions = (
     {
       type: "input",
       key: mods("ArrowDown"),
-      action: () => setExp(pipe(
+      action: () => pipe(
         root,
         mapFocused(exp => ({ ...exp, inputting: true })),
-      )),
+        setExp,
+      ),
       actionable: !inputting && unaryFocused,
     },
     {
