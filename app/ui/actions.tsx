@@ -18,7 +18,7 @@ import {
 } from "core/exp";
 import { ReactElement } from "react";
 import { match } from "ts-pattern";
-import { keyInfo, KeyInfo, mods } from "./utils";
+import { keyInfo, KeyInfo, mods } from "./key";
 import { exists, filter, head, isNonEmpty, map, size } from "fp-ts/Array";
 import { pipe } from "fp-ts/function";
 import { fold, isSome } from "fp-ts/Option";
