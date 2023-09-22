@@ -100,7 +100,7 @@ export default function Actions(props: { actions: Actions }): ReactElement {
                 .with("redo", () => "Redo")
                 .with("undo", () => "Undo")
                 .with("hide", () => "Hide")
-                .with("newline", () => "New line")
+                .with("newline", () => "Newline")
                 .with("evaluate", () => "Evaluate")
                 .with("step", () => "Step")
                 .with("copy", () => "Copy")
