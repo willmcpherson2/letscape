@@ -69,13 +69,14 @@ export const isData = (exp: Exp): exp is Data =>
   match(exp)
     .with(
       { type: "fun" },
-      { type: "match", l: { type: "fun" } },
       { type: "cons" },
       { type: "bind" },
       { type: "sym" },
       { type: "null" },
+      { type: "match", l: { type: "fun" } },
       () => true
     )
+    .with({ type: "match", l: { type: "match" } }, ma => isData(ma.l))
     .otherwise(() => false);
 
 export const isCode = (exp: Exp): boolean => !isData(exp);

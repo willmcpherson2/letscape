@@ -142,13 +142,13 @@ const binds = (exp: Exp, bind: Bind): boolean =>
 
 const evalMatch = (ma: State<Match>): State<Exp> =>
   match(evaluate({ ...ma, exp: ma.exp.l }))
-    .with({ exp: { type: "fun" } }, fun =>
-      ({ ...fun, exp: { ...ma.exp, l: fun.exp } })
-    )
     .with({ exp: { type: "null" } }, nul => evaluate(nul.rewrite(
       { ...nul, exp: { ...ma.exp, l: nul.exp } },
       ma.exp.r,
     )))
+    .with({ exp: { type: "fun" } }, { exp: { type: "match" } }, l =>
+      ({ ...l, exp: { ...ma.exp, l: l.exp } })
+    )
     .otherwise(l => l.rewrite(
       { ...l, exp: { ...ma.exp, l: l.exp } },
       l.exp,
