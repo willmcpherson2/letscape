@@ -2,7 +2,6 @@ import {
   Exp,
   Binary,
   Unary,
-  Let,
   Null,
   update,
   mapExp,
@@ -55,7 +54,7 @@ type Props<E extends Exp> = {
 
 const Exp = (props: Props<Exp>): ReactElement =>
   match(props.exp)
-    .with({ type: "let" }, le => <Let {...props} exp={le} />)
+    .with({ type: "let" }, le => <Binary operator="=" props={{ ...props, exp: le }} />)
     .with({ type: "fun" }, fun => <Binary operator="›" props={{ ...props, exp: fun }} />)
     .with({ type: "match" }, ma => <Binary operator="|" props={{ ...props, exp: ma }} />)
     .with({ type: "app" }, app => <Binary props={{ ...props, exp: app }} />)
@@ -63,106 +62,6 @@ const Exp = (props: Props<Exp>): ReactElement =>
     .with({ type: "var" }, { type: "bind" }, { type: "sym" }, exp => <Unary {...props} exp={exp} />)
     .with({ type: "null" }, nul => <Null {...props} exp={nul} />)
     .exhaustive();
-
-const Let = (props: Props<Let>): ReactElement => {
-  const ref = useRef<HTMLDivElement | null>(null);
-  useFocus(props, ref);
-
-  return hide(
-    props,
-    <div
-      className={style(props)}
-      onClick={handleClick(props)}
-    >
-      =
-    </div>,
-    <div
-      className={style(props)}
-      onClick={handleClick(props)}
-      ref={ref}
-    >
-      <div className={styles.leftAndOperatorContainer}>
-        <div className={styles.leftAndOperator}>
-          <Exp
-            {...props}
-            exp={props.exp.l}
-            update={l => pipe(
-              props.exp,
-              update({ ...props.exp, l }),
-              props.update,
-            )}
-            focus={l => pipe(
-              props.exp,
-              pipe(
-                {
-                  ...props.exp,
-                  l,
-                  m: mapUnfocus(props.exp.m),
-                  r: mapUnfocus(props.exp.r),
-                },
-                focus(false),
-                update,
-              ),
-              props.focus,
-            )}
-            borderless={false}
-          />
-          =
-        </div>
-      </div>
-      <Newline newline={props.exp.m.newline} />
-      <Exp
-        {...props}
-        exp={props.exp.m}
-        update={m => pipe(
-          props.exp,
-          update({ ...props.exp, m }),
-          props.update,
-        )}
-        focus={m => pipe(
-          props.exp,
-          pipe(
-            {
-              ...props.exp,
-              l: mapUnfocus(props.exp.l),
-              m,
-              r: mapUnfocus(props.exp.r),
-            },
-            focus(false),
-            update,
-          ),
-          props.focus,
-        )}
-        borderless={false}
-      />
-      <Newline newline={props.exp.r.newline} />
-      <Exp
-        {...props}
-        exp={props.exp.r}
-        update={r => pipe(
-          props.exp,
-          update({ ...props.exp, r }),
-          props.update,
-        )}
-        focus={r => pipe(
-          props.exp,
-          pipe(
-            {
-              ...props.exp,
-              l: mapUnfocus(props.exp.l),
-              m: mapUnfocus(props.exp.m),
-              r,
-            },
-            focus(false),
-            update,
-          ),
-          props.focus,
-        )}
-        borderless={props.exp.r.type === "let"}
-      />
-    </div>
-  );
-}
 
 const Binary = <E extends Binary>({
   operator,

@@ -6,7 +6,7 @@ import * as S from "fp-ts/string";
 export type Exp = Val & Meta;
 
 export type Val =
-  | { type: "let"; l: Exp; m: Exp; r: Exp }
+  | { type: "let"; l: Exp; r: Exp }
   | { type: "fun"; l: Exp; r: Exp }
   | { type: "match"; l: Exp; r: Exp }
   | { type: "app"; l: Exp; r: Exp }
@@ -33,11 +33,11 @@ export type Style = Partial<{
   newline: true;
 }>;
 
-export type Binary = Exclude<Extract<Exp, { l: Exp; r: Exp }>, { m: Exp }>;
+export type Binary = Extract<Exp, { l: Exp; r: Exp }>;
 
 export type Unary = Extract<Exp, { s: string }>;
 
-export type Leaf = Exclude<Exp, { l: Exp } | { m: Exp } | { r: Exp }>;
+export type Leaf = Exclude<Exp, { l: Exp } | { r: Exp }>;
 
 export type Let = Extract<Exp, { type: "let" }>;
 
@@ -58,6 +58,7 @@ export type Sym = Extract<Exp, { type: "sym" }>;
 export type Null = Extract<Exp, { type: "null" }>;
 
 export type Data =
+  | Let
   | Fun
   | Match & { l: Fun }
   | Cons
@@ -68,6 +69,7 @@ export type Data =
 export const isData = (exp: Exp): exp is Data =>
   match(exp)
     .with(
+      { type: "let" },
       { type: "fun" },
       { type: "cons" },
       { type: "bind" },
@@ -82,7 +84,6 @@ export const isData = (exp: Exp): exp is Data =>
 export const isCode = (exp: Exp): boolean => !isData(exp);
 
 export const getVal = (exp: Exp): Val => match(exp)
-  .with({ type: "let" }, le => ({ type: le.type, l: le.l, m: le.m, r: le.r }))
   .with({ l: P._ }, exp => ({ type: exp.type, l: exp.l, r: exp.r }))
   .with({ s: P._ }, exp => ({ type: exp.type, s: exp.s, }))
   .with({ type: "null" }, exp => ({ type: exp.type }))
@@ -124,13 +125,13 @@ export const focused = (exp: Exp): boolean =>
   inMeta("focused")(exp);
 
 export const isBinary = (exp: Val): exp is Binary =>
-  "l" in exp && "r" in exp && !("m" in exp);
+  "l" in exp && "r" in exp;
 
 export const isUnary = (exp: Val): exp is Unary =>
   "s" in exp;
 
 export const isLeaf = (exp: Val): exp is Leaf =>
-  !("l" in exp) && !("r" in exp) && !("m" in exp);
+  !("l" in exp) && !("r" in exp);
 
 export const mapExp = (f: (exp: Exp) => Exp) => (exp: Exp): Exp =>
   pipe(exp, mapSubExps(f), f);
@@ -140,12 +141,6 @@ export const mapSubExps = (f: (exp: Exp) => Exp) => (exp: Exp): Exp =>
 
 export const onSubExps = (f: (exp: Exp) => Exp) => (exp: Exp): Exp =>
   match(exp)
-    .with({ type: "let" }, le => ({
-      ...le,
-      l: f(le.l),
-      m: f(le.m),
-      r: f(le.r),
-    }))
     .with({ l: P._ }, exp => ({
       ...exp,
       l: f(exp.l),
@@ -155,9 +150,6 @@ export const onSubExps = (f: (exp: Exp) => Exp) => (exp: Exp): Exp =>
 
 export const reduceExp = <A>(a: A, f: (a: A, exp: Exp) => A) => (exp: Exp): A =>
   match(exp)
-    .with({ type: "let" }, le =>
-      f(reduceExp(reduceExp(reduceExp(a, f)(le.l), f)(le.m), f)(le.r), le)
-    )
     .with({ l: P._ }, exp =>
       f(reduceExp(reduceExp(a, f)(exp.l), f)(exp.r), exp)
     )
@@ -173,10 +165,6 @@ export const navigate = (exp: Exp, direction: Direction): Exp =>
   match(direction)
     .with("up", () => pipe(
       match(exp)
-        .with({ type: "let" }, le => pipe(
-          exp,
-          focus(focused(le.l) || focused(le.m) || focused(le.r)),
-        ))
         .with({ l: P._ }, exp => pipe(
           exp,
           focus(focused(exp.l) || focused(exp.r)),
@@ -189,13 +177,6 @@ export const navigate = (exp: Exp, direction: Direction): Exp =>
       exp,
       onSubExps(exp => navigate(exp, "down")),
       exp => match(exp)
-        .with({ type: "let" }, le => pipe(
-          {
-            ...le,
-            l: pipe(le.l, focus(focused(le.l) || focused(le))),
-          },
-          focus(false),
-        ))
         .with({ l: P._ }, exp => pipe(
           {
             ...exp,
@@ -207,12 +188,6 @@ export const navigate = (exp: Exp, direction: Direction): Exp =>
     ))
     .with("left", () => pipe(
       match(exp)
-        .with({ type: "let" }, le => ({
-          ...le,
-          l: pipe(le.l, focus(focused(le.l) || focused(le.m))),
-          m: pipe(le.m, focus(focused(le.r))),
-          r: pipe(le.r, focus(false)),
-        }))
         .with({ l: P._ }, exp => ({
           ...exp,
           l: pipe(exp.l, focus(focused(exp.l) || focused(exp.r))),
@@ -223,12 +198,6 @@ export const navigate = (exp: Exp, direction: Direction): Exp =>
     ))
     .with("right", () => pipe(
       match(exp)
-        .with({ type: "let" }, le => ({
-          ...le,
-          l: pipe(le.l, focus(false)),
-          m: pipe(le.m, focus(focused(le.l))),
-          r: pipe(le.r, focus(focused(le.r) || focused(le.m))),
-        }))
         .with({ l: P._ }, exp => ({
           ...exp,
           l: pipe(exp.l, focus(false)),
@@ -245,7 +214,6 @@ export const leftNavigable = (exp: Exp): boolean =>
     reduceExp(false, (yes, exp) =>
       yes ||
       match(exp)
-        .with({ type: "let" }, le => !focused(le.l) && focused(le.m) || !focused(le.m) && focused(le.r))
         .with({ l: P._ }, exp => !focused(exp.l) && focused(exp.r))
         .otherwise(() => false)
     ),
@@ -257,7 +225,6 @@ export const rightNavigable = (exp: Exp): boolean =>
     reduceExp(false, (yes, exp) =>
       yes ||
       match(exp)
-        .with({ type: "let" }, le => focused(le.l) && !focused(le.m) || focused(le.m) && !focused(le.r))
         .with({ l: P._ }, exp => focused(exp.l) && !focused(exp.r))
         .otherwise(() => false)
     ),
@@ -293,14 +260,6 @@ export const showHistory = (exp: Exp, indent: string = ""): string =>
 
 const showSubHistories = (exp: Val, indent: string = ""): string =>
   match(exp)
-    .with({ type: "let" }, le =>
-      indent + "l:" + "\n" +
-      showHistory(le.l, addIndent(indent)) +
-      indent + "m:" + "\n" +
-      showHistory(le.m, addIndent(indent)) +
-      indent + "r:" + "\n" +
-      showHistory(le.r, addIndent(indent))
-    )
     .with({ l: P._ }, exp =>
       indent + "l:" + "\n" +
       showHistory(exp.l, addIndent(indent)) +
@@ -311,7 +270,7 @@ const showSubHistories = (exp: Val, indent: string = ""): string =>
 
 export const showVal = (exp: Val): string => match(exp)
   .with({ type: "let" }, le =>
-    "(" + showVal(le.l) + " = " + showVal(le.m) + " in " + showVal(le.r) + ")"
+    "(" + showVal(le.l) + " = " + + showVal(le.r) + ")"
   )
   .with({ type: "fun" }, fun =>
     "(" + showVal(fun.l) + " -> " + showVal(fun.r) + ")"
@@ -344,7 +303,7 @@ export const showStyle = (exp: Exp): string =>
   ) +
   match(exp)
     .with({ type: "let" }, le =>
-      "(" + showStyle(le.l) + " = " + showStyle(le.m) + " in " + showStyle(le.r) + ")"
+      "(" + showStyle(le.l) + " = " + showStyle(le.r) + ")"
     )
     .with({ type: "fun" }, fun =>
       "(" + showStyle(fun.l) + " -> " + showStyle(fun.r) + ")"

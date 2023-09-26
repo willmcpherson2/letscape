@@ -342,7 +342,6 @@ export const makeActions = (
         {
           type: "let",
           l: { type: "null" },
-          m: { type: "null" },
           r: { type: "null" },
         },
       ),
@@ -484,7 +483,6 @@ const newExp = (root: Exp, setExp: (exp: Exp) => void, change: Val) => {
         time,
         {
           ...change,
-          ...(change.type === "let" && exp.type === "let" ? { l: exp.l, m: exp.m, r: exp.r } : {}),
           ...(isBinary(change) && isBinary(exp) ? { l: exp.l, r: exp.r } : {}),
           ...(isUnary(change) && isUnary(exp) ? { s: exp.s } : {}),
         },
