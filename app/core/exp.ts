@@ -57,16 +57,7 @@ export type Sym = Extract<Exp, { type: "sym" }>;
 
 export type Null = Extract<Exp, { type: "null" }>;
 
-export type Data =
-  | Let
-  | Fun
-  | Match & { l: Fun }
-  | Cons
-  | Bind
-  | Sym
-  | Null;
-
-export const isData = (exp: Exp): exp is Data =>
+export const isData = (exp: Exp): boolean =>
   match(exp)
     .with(
       { type: "let" },
