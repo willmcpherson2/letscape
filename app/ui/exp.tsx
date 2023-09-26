@@ -58,6 +58,7 @@ const Exp = (props: Props<Exp>): ReactElement =>
     .with({ type: "fun" }, fun => <Binary operator="›" props={{ ...props, exp: fun }} />)
     .with({ type: "match" }, ma => <Binary operator="|" props={{ ...props, exp: ma }} />)
     .with({ type: "app" }, app => <Binary props={{ ...props, exp: app }} />)
+    .with({ type: "in" }, i => <Binary operator="in" props={{ ...props, exp: i }} />)
     .with({ type: "cons" }, cons => <Binary operator="," props={{ ...props, exp: cons }} />)
     .with({ type: "var" }, { type: "bind" }, { type: "sym" }, exp => <Unary {...props} exp={exp} />)
     .with({ type: "null" }, nul => <Null {...props} exp={nul} />)

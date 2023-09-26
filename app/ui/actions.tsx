@@ -58,6 +58,7 @@ export type Action = {
   | "fun"
   | "match"
   | "app"
+  | "in"
   | "cons"
   | "var"
   | "bind"
@@ -109,6 +110,7 @@ export default function Actions(props: { actions: Actions }): ReactElement {
                 .with("fun", () => "Function")
                 .with("match", () => "Match")
                 .with("app", () => "Application")
+                .with("in", () => "In")
                 .with("cons", () => "Cons")
                 .with("var", () => "Variable")
                 .with("bind", () => "Bind")
@@ -383,6 +385,20 @@ export const makeActions = (
         setExp,
         {
           type: "app",
+          l: { type: "null" },
+          r: { type: "null" },
+        },
+      ),
+      actionable: !inputting && anyFocused,
+    },
+    {
+      type: "in",
+      key: mods("i"),
+      action: () => newExp(
+        root,
+        setExp,
+        {
+          type: "in",
           l: { type: "null" },
           r: { type: "null" },
         },

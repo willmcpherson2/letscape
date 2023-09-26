@@ -10,6 +10,7 @@ export type Val =
   | { type: "fun"; l: Exp; r: Exp }
   | { type: "match"; l: Exp; r: Exp }
   | { type: "app"; l: Exp; r: Exp }
+  | { type: "in"; l: Exp; r: Exp }
   | { type: "cons"; l: Exp; r: Exp }
   | { type: "var"; s: string }
   | { type: "bind"; s: string }
@@ -46,6 +47,8 @@ export type Fun = Extract<Exp, { type: "fun" }>;
 export type Match = Extract<Exp, { type: "match" }>;
 
 export type App = Extract<Exp, { type: "app" }>;
+
+export type In = Extract<Exp, { type: "in" }>;
 
 export type Cons = Extract<Exp, { type: "cons" }>;
 
@@ -272,6 +275,9 @@ export const showVal = (exp: Val): string => match(exp)
   .with({ type: "app" }, app =>
     "(" + showVal(app.l) + " " + showVal(app.r) + ")"
   )
+  .with({ type: "in" }, app =>
+    "(" + showVal(app.l) + " in " + showVal(app.r) + ")"
+  )
   .with({ type: "cons" }, cons =>
     "(" + showVal(cons.l) + ", " + showVal(cons.r) + ")"
   )
@@ -304,6 +310,9 @@ export const showStyle = (exp: Exp): string =>
     )
     .with({ type: "app" }, app =>
       "(" + showStyle(app.l) + " " + showStyle(app.r) + ")"
+    )
+    .with({ type: "in" }, app =>
+      "(" + showStyle(app.l) + " in " + showStyle(app.r) + ")"
     )
     .with({ type: "cons" }, cons =>
       "(" + showStyle(cons.l) + ", " + showStyle(cons.r) + ")"

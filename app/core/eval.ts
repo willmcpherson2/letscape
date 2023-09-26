@@ -51,6 +51,10 @@ export const evalDeep = (exp: State<Exp>): State<Exp> =>
 export const evaluate = (exp: State<Exp>): State<Exp> =>
   match(exp)
     .with({ exp: { type: "app" } }, app => evalApp({ ...exp, exp: app.exp }))
+    .with({ exp: { type: "in" } }, i => evaluate(exp.rewrite(
+      { ...exp, exp: i.exp },
+      { ...i.exp, type: "app" },
+    )))
     .with({ exp: { type: "match" } }, ma => evalMatch({ ...exp, exp: ma.exp }))
     .with({ exp: { type: "var" } }, va => exp.rewrite(
       { ...exp, exp: va.exp },
