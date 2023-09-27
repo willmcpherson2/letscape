@@ -87,6 +87,7 @@
 .unary {
   resize: none;
   border: none;
+  font-size: inherit;
 }
 
 .bind {
