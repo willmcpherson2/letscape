@@ -66,9 +66,13 @@ const evalApp = (app: State<App>): State<Exp> =>
   match(evaluate({ ...app, exp: app.exp.l }))
     .with({ exp: { type: "let" } }, le =>
       match(evaluate({ ...le, exp: le.exp.l }))
-        .with({ exp: { type: "match" } }, l => unfold(l, le.exp, app.exp))
-        .with({ exp: { type: "fun" } }, l => unfold(l, le.exp, app.exp))
-        .with({ exp: { type: "cons" } }, l => unfold(l, le.exp, app.exp))
+        .with(
+          { exp: { type: "let" } },
+          { exp: { type: "match" } },
+          { exp: { type: "fun" } },
+          { exp: { type: "cons" } },
+          l => unfold(l, le.exp, app.exp)
+        )
         .with({ exp: { type: "sym" } }, l =>
           match(evaluate({ ...l, exp: le.exp.r }))
             .with({ exp: { type: "sym", s: l.exp.s } }, r => evaluate(r.rewrite(
@@ -122,7 +126,7 @@ const evalApp = (app: State<App>): State<Exp> =>
       { type: "null" },
     ));
 
-const unfold = <B extends Binary>(l: State<B>, le: Let, app: App): State<Exp> =>
+const unfold = (l: State<Binary>, le: Let, app: App): State<Exp> =>
   match(evaluate({ ...l, exp: le.r }))
     .with({ exp: { type: l.exp.type } }, r => evaluate(r.rewrite(
       { ...r, exp: { ...app, l: { ...le, l: l.exp, r: r.exp } } },
