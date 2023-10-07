@@ -31,6 +31,9 @@ const Header = (): ReactElement => (
       <a href="https://github.com/willmcpherson2/letscape">
         GitHub
       </a>
+      <a href="https://www.youtube.com/watch?v=GHrnok_Q168">
+        Video
+      </a>
     </div>
   </div>
 );
