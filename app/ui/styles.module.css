@@ -50,6 +50,11 @@
   background-color: var(--crust);
 }
 
+.info {
+  position: absolute;
+  background-color: var(--surface0);
+}
+
 .editorExp {
   flex: 2;
   overflow-y: scroll;
