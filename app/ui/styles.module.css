@@ -45,14 +45,29 @@
   overflow-y: scroll;
 }
 
+.actions table {
+  border-collapse: collapse;
+}
+
 .actions button {
   font-size: inherit;
   background-color: var(--crust);
 }
 
+.actions th {
+  text-align: left;
+}
+
+.actions td {
+  vertical-align: top;
+}
+
+.shortcut {
+  white-space: nowrap;
+}
+
 .info {
-  position: absolute;
-  background-color: var(--surface0);
+  background-color: var(--mantle);
 }
 
 .editorExp {

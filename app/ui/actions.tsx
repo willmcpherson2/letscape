@@ -447,7 +447,7 @@ const Action = ({
           {title}
         </button>
       </td>
-      <td>
+      <td className={styles.shortcut}>
         {shortcut.alt ? "Alt " : null}
         {shortcut.ctrl ? "Ctrl " : null}
         {shortcut.shift ? "Shift " : null}
@@ -455,7 +455,7 @@ const Action = ({
       </td>
       <td>
         <button onClick={() => setShowInfo(showInfo => !showInfo)}>
-          {showInfo ? "Hide" : "Show"}
+          ?
         </button>
         <div className={styles.info}>
           {showInfo ? info : ""}
