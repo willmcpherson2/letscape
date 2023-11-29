@@ -16,7 +16,7 @@ Letscape is...
 
 ```sh
 PORT=3000
-LETSCAPE_DB=/tmp/db.json 
+LETSCAPE_DB=./prelude.json 
 ```
 
 ### Development build
