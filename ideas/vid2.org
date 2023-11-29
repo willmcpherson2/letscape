@@ -1,0 +1,62 @@
+* cool examples
+
+** editing tricks
+
+*** hiding
+
+standard library with hiding
+
+*** local undo
+
+*** naming conventions
+
+- names can have any characters
+- including spaces
+- including newlines
+
+*** setting
+
+1. an expression is the wrong type
+2. just set it, the contents stay the same
+
+*** wrapping
+
+1. an expression needs to be inside something else
+2. copy the expression
+3. set it to something else
+4. paste it back in
+
+*** swapping
+
+1. two sides need to be swapped
+2. copy the left
+3. paste to the right
+4. undo the right
+5. copy the right
+6. redo the right
+7. paste to the left
+
+*** multiple cursors
+
+1. ctrl click
+2. edit
+
+** programming tricks
+
+*** comments
+
+*** pattern abstraction
+
+*** infinite lists
+
+*** type classes / ad hoc polymorphism / overloading
+
+*** named arguments
+
+*** "macros"
+
+*** "typed" functions? e.g. ~bool (*x -> x) :true~
+
+*** modules?
+
+*** objects?

@@ -1,0 +1,20 @@
+* I/O
+
+maybe io is just breakpoints? because if you have a breakpoint, you can modify expressions mid-execution, which is user interaction. examples:
+
+- a breakpoint with the expression (:name, :) then you enter your name. it's a prompt.
+- a breakpoint where you are provided with choices (:colour, (:red, :green, :blue)) then you transform that into :red
+- a breakpoint where you get a prompt (:evaluate, _) and enter a program (:evaluate, (:1, :+, :1)) which gets evaluated
+
+what are the consequences of this? how does this interact with laziness? must it be a monad to be sound?
+
+what are we really doing? seems to be reifying "pause" and "resume".
+
+what other control flows are there? halt? parallel execution?
+
+how could we enrich expressions to cater to interaction?
+
+- "selected" expressions. like focus but pattern matchable. so user can just click an expression.
+- UI, e.g. lists, images, tables, forms, inputs
+
+when pausing, hide everything else. hide all implementation details from user interaction.

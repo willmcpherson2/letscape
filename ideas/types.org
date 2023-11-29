@@ -1,0 +1,11 @@
+let's say you have a set of definitions. they are not typed. the final "in" will be evaluated.
+
+a = b in
+c = d in
+e
+
+but what if we evaluated some type checking code? we could do it like this:
+
+1. supply each definition to the type checker, and a program to execute
+2. if the type check passes, the program is evaluated
+3. if the type check fails, the result is an error message
