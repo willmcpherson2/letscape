@@ -1,0 +1,35 @@
+Letscape expressions are HTML. Pattern matching looks like this (this is HTML in the editor):
+
+#+begin_src
+(:foo, *x) = (:foo, :bar)
+#+end_src
+
+In that example, the data is a cons of symbols (a pair of strings). Now imagine we add more sophisticated data like UI elements. For example, an HTML unordered list:
+
+ #+begin_src
+ --------
+| • :foo |
+| • :bar |
+ --------
+ #+end_src
+
+This would be editable in the exact same way that a cons is, i.e. you press some key to add an item to the list. So you would have a bunch of UI elements like lists, items, images, etc. Binds would work inside UI elements too, so you would be able to pattern match on an unordered list. This example is equivalent to the previous one.
+
+ #+begin_src
+ --------     --------
+| • :foo | = | • :foo |
+| • *x   |   | • :bar |
+ --------     --------
+ #+end_src
+
+This makes UI programmable.
+
+A todo list:
+
+ #+begin_src
+ --------------
+| :todo        |
+| ☑ :laundry   |
+| ☐ :gardening |
+ --------------
+ #+end_src
