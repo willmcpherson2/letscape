@@ -41,6 +41,8 @@ standard library with hiding
 1. ctrl click
 2. edit
 
+*** step evaluation
+
 ** programming tricks
 
 *** comments
@@ -49,14 +51,18 @@ standard library with hiding
 
 *** infinite lists
 
-*** type classes / ad hoc polymorphism / overloading
+*** type(x) / x.class / nil?
+
+*** tagged types / type classes / ad hoc polymorphism / overloading
 
 *** named arguments
 
+*** optional arguments
+
 *** "macros"
 
-*** "typed" functions? e.g. ~bool (*x -> x) :true~
+*** modules
 
-*** modules?
+*** "typed" functions? e.g. ~bool (*x -> x) :true~
 
 *** objects?
