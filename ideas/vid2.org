@@ -62,7 +62,3 @@ standard library with hiding
 *** "macros"
 
 *** modules
-
-*** "typed" functions? e.g. ~bool (*x -> x) :true~
-
-*** objects?
