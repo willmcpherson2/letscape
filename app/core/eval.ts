@@ -161,7 +161,7 @@ const substitute = (bind: Bind, def: Exp) => (scope: Exp): Exp =>
         ? fun
         : onSubExps(substitute(bind, def))(fun)
     )
-    .with({ type: "app", l: { type: "let" } }, app =>
+    .with({ type: "app", l: { type: "let" } }, { type: "in", l: { type: "let" } }, app =>
       binds(app.l.l, bind)
         ? app
         : onSubExps(substitute(bind, def))(app)
