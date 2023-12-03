@@ -1,0 +1,48 @@
+In Letscape you can get the type of any term by pattern matching. These patterns (using empty binds) test for each type:
+
+#+begin_src
+  (* = *)
+  (* -> *)
+  ((* -> *) | *)
+  (*, *)
+  _
+#+end_src
+
+Only data can be pattern matched, because code will be evaluated before pattern matching, so for example applications can't be pattern matched.
+
+However, some data types are missing: symbols ~:foo~ and binds ~*foo~. You can match specific symbols, but you can't write an ~is-symbol~ function.
+
+There are many ways to add this ability, but the one I like most is this: adding a pattern that destructures these types. This would work the same as other patterns. Compare it to the cons pattern:
+
+#+begin_src
+  (:a, :b, *x) = (:a, :b, :c) in x
+  :c
+#+end_src
+
+Let's use & to represent a symbol pattern:
+
+#+begin_src
+  (:a & :b & *x) = :abc in x
+  :c
+#+end_src
+
+After writing the above, I realise that we're really creating a concatenation operator, so you would also be able to do this:
+
+#+begin_src
+  :abc = (:ab & :c) in :ok
+  :ok
+#+end_src
+
+You could say that ~:abc~ is syntactic sugar for ~:f & :o & :o~.
+
+What about symbols with less than 2 characters? We could just bind to null:
+
+#+begin_src
+  *x & *y = :a in x, y
+  :a, _
+#+end_src
+
+#+begin_src
+  *x & *y = : in x, y
+  _, _
+#+end_src
