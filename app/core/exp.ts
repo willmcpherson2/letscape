@@ -264,7 +264,7 @@ const showSubHistories = (exp: Val, indent: string = ""): string =>
 
 export const showVal = (exp: Val): string => match(exp)
   .with({ type: "let" }, le =>
-    "(" + showVal(le.l) + " = " + + showVal(le.r) + ")"
+    "(" + showVal(le.l) + " = " + showVal(le.r) + ")"
   )
   .with({ type: "fun" }, fun =>
     "(" + showVal(fun.l) + " -> " + showVal(fun.r) + ")"
