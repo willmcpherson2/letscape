@@ -71,7 +71,7 @@ const Binary = <E extends Binary>({
   operator?: string;
   props: Props<E>;
 }): ReactElement => {
-  const ref = useFocus(props);
+  const ref = useScroll(props);
 
   return hide(
     props,
@@ -149,8 +149,8 @@ const Binary = <E extends Binary>({
 }
 
 const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
-  const spanRef = useFocus(props);
-  const textAreaRef = useInput(props);
+  const spanRef = useScroll(props);
+  const textAreaRef = useFocus(props);
 
   return hide(
     props,
@@ -210,7 +210,7 @@ const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
 }
 
 const Null = (props: Props<Null>): ReactElement => {
-  const ref = useFocus(props);
+  const ref = useScroll(props);
 
   return hide(
     props,
@@ -233,7 +233,7 @@ const Null = (props: Props<Null>): ReactElement => {
 const Newline = (props: { newline?: true }) =>
   props.newline ? <hr className={styles.newline} /> : null;
 
-const useFocus = (props: Props<Exp>): MutableRefObject<HTMLDivElement | null> => {
+const useScroll = (props: Props<Exp>): MutableRefObject<HTMLDivElement | null> => {
   const ref = useRef<HTMLDivElement | null>(null);
   useEffect(
     () => {
@@ -251,7 +251,7 @@ const useFocus = (props: Props<Exp>): MutableRefObject<HTMLDivElement | null> =>
   return ref;
 }
 
-const useInput = (props: Props<Exp>): MutableRefObject<HTMLTextAreaElement | null> => {
+const useFocus = (props: Props<Exp>): MutableRefObject<HTMLTextAreaElement | null> => {
   const ref = useRef<HTMLTextAreaElement | null>(null);
   useEffect(
     () => props.exp.inputting
