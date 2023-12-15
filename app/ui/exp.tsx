@@ -71,8 +71,7 @@ const Binary = <E extends Binary>({
   operator?: string;
   props: Props<E>;
 }): ReactElement => {
-  const ref = useRef<HTMLDivElement | null>(null);
-  useFocus(props, ref);
+  const ref = useFocus(props);
 
   return hide(
     props,
@@ -150,9 +149,8 @@ const Binary = <E extends Binary>({
 }
 
 const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
-  const ref = useRef<HTMLTextAreaElement | null>(null);
-  useFocus(props, ref);
-  useInput(props, ref);
+  const spanRef = useFocus(props);
+  const textAreaRef = useInput(props);
 
   return hide(
     props,
@@ -162,56 +160,57 @@ const Unary = <E extends Unary>(props: Props<E>): ReactElement => {
     >
       …
     </div>,
-    <textarea
-      ref={ref}
-      className={style(props)}
-      onMouseDown={e => {
-        e.stopPropagation();
-        if (!props.exp.inputting) {
-          e.preventDefault();
-        }
-      }}
-      onClick={e => {
-        e.stopPropagation();
-        if (!props.exp.inputting) {
-          handleClick(props)(e);
-        }
-      }}
-      onFocus={() => pipe(
-        props.exp,
-        mapUnfocus,
-        setMeta("inputting", true),
-        setMeta("focused", true),
-        props.focus,
-      )}
-      onBlur={() => pipe(
-        props.exp,
-        pipe(props.exp, unsetMeta("inputting"), update),
-        props.update,
-      )}
-      value={props.exp.s}
-      onChange={e => {
-        const s = e.target.value;
-        pipe(
+    <span ref={spanRef}>
+      <textarea
+        ref={textAreaRef}
+        className={style(props)}
+        onMouseDown={e => {
+          e.stopPropagation();
+          if (!props.exp.inputting) {
+            e.preventDefault();
+          }
+        }}
+        onClick={e => {
+          e.stopPropagation();
+          if (!props.exp.inputting) {
+            handleClick(props)(e);
+          }
+        }}
+        onFocus={() => pipe(
           props.exp,
-          edit(nextTime(props.root), { ...props.exp, s }),
+          mapUnfocus,
+          setMeta("inputting", true),
+          setMeta("focused", true),
+          props.focus,
+        )}
+        onBlur={() => pipe(
+          props.exp,
+          pipe(props.exp, unsetMeta("inputting"), update),
           props.update,
-        );
-      }}
-      rows={props.exp.s.split("\n").length}
-      cols={pipe(
-        props.exp.s.split("\n"),
-        map(s => s.length),
-        reduce(1, Math.max),
-      )}
-      spellCheck={false}
-    />
+        )}
+        value={props.exp.s}
+        onChange={e => {
+          const s = e.target.value;
+          pipe(
+            props.exp,
+            edit(nextTime(props.root), { ...props.exp, s }),
+            props.update,
+          );
+        }}
+        rows={props.exp.s.split("\n").length}
+        cols={pipe(
+          props.exp.s.split("\n"),
+          map(s => s.length),
+          reduce(1, Math.max),
+        )}
+        spellCheck={false}
+      />
+    </span>
   );
 }
 
 const Null = (props: Props<Null>): ReactElement => {
-  const ref = useRef<HTMLDivElement | null>(null);
-  useFocus(props, ref);
+  const ref = useFocus(props);
 
   return hide(
     props,
@@ -228,13 +227,14 @@ const Null = (props: Props<Null>): ReactElement => {
     >
       &nbsp;
     </div>
-  );
+  )
 }
 
 const Newline = (props: { newline?: true }) =>
   props.newline ? <hr className={styles.newline} /> : null;
 
-const useFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLElement | null>) =>
+const useFocus = (props: Props<Exp>): MutableRefObject<HTMLDivElement | null> => {
+  const ref = useRef<HTMLDivElement | null>(null);
   useEffect(
     () => {
       if (ref.current && props.container.current && props.exp.focused) {
@@ -248,14 +248,19 @@ const useFocus = (props: Props<Exp>, ref: MutableRefObject<HTMLElement | null>) 
     },
     [props.exp.focused],
   );
+  return ref;
+}
 
-const useInput = (props: Props<Exp>, ref: MutableRefObject<HTMLTextAreaElement | null>) =>
+const useInput = (props: Props<Exp>): MutableRefObject<HTMLTextAreaElement | null> => {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
   useEffect(
     () => props.exp.inputting
       ? ref.current?.focus()
       : ref.current?.blur(),
     [props.exp.inputting],
   );
+  return ref;
+}
 
 const handleClick = (props: Props<Exp>) => (e: MouseEvent<HTMLElement>) => {
   e.stopPropagation();
