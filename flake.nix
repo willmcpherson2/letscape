@@ -4,7 +4,7 @@
   outputs = { self, nixpkgs }:
     let pkgs = nixpkgs.legacyPackages.x86_64-linux;
     in {
-      defaultPackage.x86_64-linux = pkgs.buildNpmPackage {
+      packages.x86_64-linux.default = pkgs.buildNpmPackage {
         name = "letscape";
         src = self;
         installPhase = ''
