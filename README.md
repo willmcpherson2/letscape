@@ -29,7 +29,6 @@ npm run dev
 ### Production build
 
 ```sh
-rm -rf result
-nix-build
+nix build
 npm start --prefix result/letscape
 ```
