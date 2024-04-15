@@ -30,5 +30,6 @@ npm run dev
 
 ```sh
 nix build
+nix shell .#node
 npm start --prefix result/letscape
 ```
